@@ -22,8 +22,17 @@ function M.get_icon(entry)
   return (icon or "") .. " "
 end
 
----@param win_id integer
 function M.set_window_opts(win_id)
+  M.original_win_opts = {
+    number = vim.api.nvim_win_get_option(win_id, "number"),
+    relativenumber = vim.api.nvim_win_get_option(win_id, "relativenumber"),
+    cursorline = vim.wo[win_id].cursorline,
+    conceallevel = vim.wo[win_id].conceallevel,
+    concealcursor = vim.wo[win_id].concealcursor,
+    foldenable = vim.wo[win_id].foldenable,
+    wrap = vim.wo[win_id].wrap,
+  }
+
   vim.api.nvim_win_set_option(win_id, "number", false)
   vim.api.nvim_win_set_option(win_id, "relativenumber", false)
   vim.api.nvim_win_call(win_id, function()
@@ -34,6 +43,27 @@ function M.set_window_opts(win_id)
   vim.wo[win_id].concealcursor = "nvic"
   vim.wo[win_id].foldenable = false
   vim.wo[win_id].wrap = false
+end
+
+---@param win_id integer
+function M.restore_window_opts(win_id)
+  if M.original_win_opts then
+    local opts = M.original_win_opts
+    vim.api.nvim_win_set_option(win_id, "number", opts.number)
+    vim.api.nvim_win_set_option(win_id, "relativenumber", opts.relativenumber)
+    vim.wo[win_id].cursorline = opts.cursorline
+    vim.wo[win_id].conceallevel = opts.conceallevel
+    vim.wo[win_id].concealcursor = opts.concealcursor
+    vim.wo[win_id].foldenable = opts.foldenable
+    vim.wo[win_id].wrap = opts.wrap
+
+    M.original_win_opts = nil
+    vim.api.nvim_win_call(win_id, function()
+      vim.fn.clearmatches()
+    end)
+  else
+    print("No original options stored for window " .. win_id)
+  end
 end
 
 ---@param entries trek.DirectoryEntry[]
@@ -48,6 +78,15 @@ function M.render_dir(entries, buf_id)
     end
   )
   vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, lines)
+end
+
+---@param win_id integer
+---@param path string
+function M.open_file(win_id, path)
+  vim.api.nvim_win_call(win_id, function()
+    vim.cmd("e " .. path)
+    vim.cmd("filetype detect")
+  end)
 end
 
 return M

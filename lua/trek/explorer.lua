@@ -9,18 +9,25 @@ end
 
 ---@class trek.Explorer
 ---@field path string
+---@field opened boolean
 local M = {}
 
 ---@param path string
 function M.open(path)
   M.path = path
   M.window = window.open()
+  M.opened = true
   M.render_dirs(path)
   for _, win_id in ipairs({ M.window.left_win_id, M.window.center_win_id, M.window.right_win_id }) do
     view.set_window_opts(win_id)
   end
   M.track_cursor()
   M.setup_keymaps()
+end
+
+function M.close()
+  M.opened = false
+  vim.cmd("tabc")
 end
 
 function M.setup_keymaps()
@@ -30,12 +37,18 @@ function M.setup_keymaps()
 end
 
 function M.select_entry()
-  print("select entry")
   --TODO validate selected_entry
-  local path = M.selected_entry.fs_type == "directory" and M.selected_entry.path
-    or fs.get_directory_of_path(M.selected_entry.path)
-  M.path = path
-  M.render_dirs(path)
+  if M.selected_entry == nil then
+    return
+  end
+  if M.selected_entry.fs_type == "file" then
+    M.close()
+    view.open_file(0, M.selected_entry.path)
+    view.restore_window_opts(vim.api.nvim_get_current_win())
+    return
+  end
+  M.path = M.selected_entry.path
+  M.render_dirs(M.path)
   M.update_preview()
 end
 
@@ -57,13 +70,26 @@ function M.track_cursor()
 end
 
 function M.update_preview()
+  if not M.opened then
+    return
+  end
   local row = vim.api.nvim_win_get_cursor(M.window.center_win_id)[1]
   local dir = fs.get_dir_content(M.path)
   if dir == nil then
     return
   end
+  if M.selected_entry ~= nil and M.selected_entry.fs_type == "file" then
+    M.clean_buffer()
+  end
   M.selected_entry = dir.entries[row]
   M.render_preview(M.selected_entry)
+end
+
+function M.clean_buffer()
+  local buf_id = vim.api.nvim_win_get_buf(M.window.right_win_id)
+  local tmp_buf_id = vim.api.nvim_create_buf(true, true)
+  vim.api.nvim_win_set_buf(M.window.right_win_id, tmp_buf_id)
+  vim.api.nvim_buf_delete(buf_id, { force = true })
 end
 
 ---@param entry trek.DirectoryEntry
@@ -73,9 +99,7 @@ function M.render_preview(entry)
     M.render_dir(entry.path, M.window.right_buf_id)
   end
   if entry.fs_type == "file" then
-    vim.api.nvim_win_call(M.window.right_win_id, function()
-      vim.cmd("e " .. entry.path)
-    end)
+    view.open_file(M.window.right_win_id, M.selected_entry.path)
   end
 end
 
