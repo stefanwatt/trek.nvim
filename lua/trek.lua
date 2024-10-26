@@ -22,7 +22,8 @@ M.setup = function(args)
 end
 
 M.open = function()
-  local dir = fs.get_dir_content("/home/stefan/Projects/trek.nvim")
+  local path = vim.fn.getcwd(0,0)
+  local dir = fs.get_dir_content(path)
   explorer.open(dir)
 end
 
