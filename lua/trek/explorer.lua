@@ -20,6 +20,7 @@ function M.open(path)
   if parent_path ~= nil then
     M.render_parent_dir(parent_path)
   end
+  vim.api.nvim_set_current_win(M.window.center_win_id)
 
   vim.api.nvim_create_autocmd("CursorMoved", {
     group = augroup("trek.Cursor"),
@@ -30,14 +31,22 @@ function M.open(path)
         return
       end
       local current_entry = dir.entries[row]
-      M.render_preview(current_entry.name)
+      M.render_preview(current_entry)
     end,
   })
 end
 
----@param content string
-function M.render_preview(content)
-  vim.api.nvim_buf_set_lines(M.window.right_buf_id, 0, -1, false, { content })
+---@param entry trek.DirectoryEntry
+function M.render_preview(entry)
+  if entry.fs_type == "directory" then
+    vim.api.nvim_win_set_buf(M.window.right_win_id, M.window.right_buf_id)
+    M.render_dir(entry.path, M.window.right_buf_id)
+  end
+  if entry.fs_type == "file" then
+    vim.api.nvim_win_call(M.window.right_win_id, function()
+      vim.cmd("e " .. entry.path)
+    end)
+  end
 end
 
 ---@param path string
