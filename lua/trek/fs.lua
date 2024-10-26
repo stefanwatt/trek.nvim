@@ -7,6 +7,8 @@
 ---@field name string
 ---@field path string
 
+---@class trek.Filesystem
+---@field directory trek.Directory
 local M = {}
 
 ---@param path string
@@ -15,7 +17,9 @@ function M.normalize_path(path)
   return (path:gsub("/+", "/"):gsub("(.)/$", "%1"))
 end
 
-function M.full_path(path) return M.normalize_path(vim.fn.fnamemodify(path, ':p')) end
+function M.full_path(path)
+  return M.normalize_path(vim.fn.fnamemodify(path, ":p"))
+end
 
 ---@param path string
 ---@return string | nil
@@ -54,6 +58,11 @@ function M.get_dir_content(path)
     path = path,
     entries = entries,
   }
+end
+
+---@return trek.Directory | nil
+function M.get_current_dir()
+  return M.directory
 end
 
 return M
