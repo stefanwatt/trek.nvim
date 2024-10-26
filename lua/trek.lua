@@ -1,5 +1,6 @@
 -- main module file
-local module = require("plugin_name.module")
+local fs = require("trek.fs")
+local explorer = require("trek.explorer")
 
 ---@class Config
 ---@field opt string Your config option
@@ -7,7 +8,7 @@ local config = {
   opt = "Hello!",
 }
 
----@class MyModule
+---@class Trek
 local M = {}
 
 ---@type Config
@@ -20,8 +21,9 @@ M.setup = function(args)
   M.config = vim.tbl_deep_extend("force", M.config, args or {})
 end
 
-M.hello = function()
-  return module.my_first_function(M.config.opt)
+M.open = function()
+  local dir = fs.get_dir_content("/home/stefan/Projects/trek.nvim")
+  explorer.open(dir)
 end
 
 return M
