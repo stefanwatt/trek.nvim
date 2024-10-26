@@ -1,33 +1,36 @@
 local utils = require("trek.utils")
 local window = require("trek.window")
+local view = require("trek.view")
 local fs = require("trek.fs")
 
 local M = {}
 
----@param directory trek.Directory
-function M.open(directory)
-  local current_window = window.open()
-  local lines = M.mapBufLines(directory.entries)
-  vim.api.nvim_buf_set_lines(current_window.center_buf_id, 0, -1, false, lines)
-  local parent_path = fs.get_parent(directory.path)
+---@param path string
+function M.open(path)
+  M.window = window.open()
+  M.render_current_dir(path)
+  local parent_path = fs.get_parent(path)
   if parent_path ~= nil then
-    local parent_dir = fs.get_dir_content(parent_path)
-    lines = M.mapBufLines(parent_dir.entries)
-    vim.api.nvim_buf_set_lines(current_window.left_buf_id, 0, -1, false, lines)
+    M.render_parent_dir(parent_path)
   end
 end
 
----@param entries trek.DirectoryEntry[]
----@return lines string[]
-function M.mapBufLines(entries)
-  return utils.map(
-    entries,
-    ---@param entry trek.DirectoryEntry
-    function(entry)
-      local icon = entry.fs_type == "directory" and "" or ""
-      return icon .. " " .. entry.name
-    end
-  )
+---@param path string
+function M.render_current_dir(path)
+  M.render_dir(path, M.window.center_buf_id)
+end
+
+---@param path string
+function M.render_parent_dir(path)
+  M.render_dir(path, M.window.left_buf_id)
+end
+
+---@param path string
+---@param buf_id integer
+function M.render_dir(path, buf_id)
+  local dir = fs.get_dir_content(path)
+  local lines = view.get_dir_view(dir.entries)
+  vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, lines)
 end
 
 return M

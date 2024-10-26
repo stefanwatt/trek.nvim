@@ -23,8 +23,7 @@ end
 
 M.open = function()
   local path = vim.fn.getcwd(0,0)
-  local dir = fs.get_dir_content(path)
-  explorer.open(dir)
+  explorer.open(path)
 end
 
 return M
