@@ -16,6 +16,9 @@ function M.open(path)
   M.path = path
   M.window = window.open()
   M.render_dirs(path)
+  for _, win_id in ipairs({ M.window.left_win_id, M.window.center_win_id, M.window.right_win_id }) do
+    view.set_window_opts(win_id)
+  end
   M.track_cursor()
   M.setup_keymaps()
 end
@@ -90,8 +93,7 @@ end
 ---@param buf_id integer
 function M.render_dir(path, buf_id)
   local dir = fs.get_dir_content(path)
-  local lines = view.get_dir_view(dir.entries)
-  vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, lines)
+  view.render_dir(dir.entries, buf_id)
 end
 
 ---@param path string

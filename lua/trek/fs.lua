@@ -3,13 +3,17 @@
 ---@field entries trek.DirectoryEntry[]
 
 ---@class trek.DirectoryEntry
+---@field id integer
 ---@field fs_type "file" | "directory"
 ---@field name string
 ---@field path string
 
 ---@class trek.Filesystem
 ---@field directory trek.Directory
-local M = {}
+---@field path_index table
+local M = {
+  path_index = {},
+}
 
 ---@param path string
 ---@return string
@@ -62,7 +66,13 @@ function M.get_dir_content(path)
   local name, fs_type = vim.loop.fs_scandir_next(fs)
   while name do
     if fs_type == "file" or fs_type == "directory" then
-      table.insert(entries, { fs_type = fs_type, name = name, path = M.get_child_path(path, name) })
+      local child_path = M.get_child_path(path, name)
+      table.insert(entries, {
+        fs_type = fs_type,
+        name = name,
+        path = child_path,
+        id = M.add_path_to_index(child_path),
+      })
     end
     name, fs_type = vim.loop.fs_scandir_next(fs)
   end
@@ -72,6 +82,20 @@ function M.get_dir_content(path)
   }
 end
 
+---@param path string
+---@return integer 
+function M.add_path_to_index(path)
+  local cur_id = M.path_index[path]
+  if cur_id ~= nil then
+    return cur_id
+  end
+
+  local new_id = #M.path_index + 1
+  M.path_index[new_id] = path
+  M.path_index[path] = new_id
+
+  return new_id
+end
 ---@return trek.Directory | nil
 function M.get_current_dir()
   return M.directory
