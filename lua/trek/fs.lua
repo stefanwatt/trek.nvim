@@ -22,6 +22,18 @@ function M.full_path(path)
 end
 
 ---@param path string
+---@return string
+function M.get_directory_of_path(path)
+  local full_path = M.full_path(path)
+  local stat = vim.loop.fs_stat(full_path)
+
+  if stat and stat.type == "directory" then
+    return full_path
+  else
+    return M.get_parent(full_path) or ""
+  end
+end
+---@param path string
 ---@return string | nil
 function M.get_parent(path)
   path = M.full_path(path)
