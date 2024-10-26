@@ -1,4 +1,6 @@
 local utils = require("trek.utils")
+local highlights = require("trek.highlights")
+
 local M = {}
 
 ---@param path string
@@ -37,6 +39,7 @@ function M.set_window_opts(win_id)
   vim.api.nvim_win_set_option(win_id, "relativenumber", false)
   vim.api.nvim_win_call(win_id, function()
     vim.fn.matchadd("Conceal", [[^/\d\+/]])
+    vim.fn.matchadd("Conceal", [[^/\d\+/[^/]*\zs/\ze]])
   end)
   vim.wo[win_id].cursorline = true
   vim.wo[win_id].conceallevel = 3
@@ -74,10 +77,11 @@ function M.render_dir(entries, buf_id)
     ---@param entry trek.DirectoryEntry
     function(entry)
       local icon = M.get_icon(entry)
-      return "/" .. entry.id .. "/" .. icon .. " " .. entry.name
+      return "/" .. entry.id .. "/" .. icon .. " /" .. entry.name
     end
   )
   vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, lines)
+  highlights.add_highlights(buf_id, entries)
 end
 
 ---@param win_id integer

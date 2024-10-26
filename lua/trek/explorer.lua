@@ -9,6 +9,7 @@ end
 
 ---@class trek.Explorer
 ---@field path string
+---@field tab_id integer
 ---@field opened boolean
 local M = {}
 
@@ -17,6 +18,7 @@ function M.open(path)
   M.path = path
   M.window = window.open()
   M.opened = true
+  window.resize_windows(M.window.left_win_id, M.window.center_win_id, M.window.right_win_id)
   M.render_dirs(path)
   for _, win_id in ipairs({ M.window.left_win_id, M.window.center_win_id, M.window.right_win_id }) do
     view.set_window_opts(win_id)
@@ -27,6 +29,10 @@ end
 
 function M.close()
   M.opened = false
+  local current_tab_id = vim.api.nvim_get_current_tabpage()
+  if current_tab_id ~= M.window.tab_id then
+    return
+  end
   vim.cmd("tabc")
 end
 

@@ -29,4 +29,17 @@ function M.open()
   return window
 end
 
+---@param left_win number
+---@param center_win number
+---@param right_win number
+function M.resize_windows(left_win, center_win, right_win)
+	local total_width = vim.o.columns
+	local small_width = math.floor(total_width * 0.25)
+	local large_width = math.floor(total_width * 0.5)
+
+	vim.api.nvim_win_set_width(left_win, small_width)
+	vim.api.nvim_win_set_width(center_win, small_width)
+	vim.api.nvim_win_set_width(right_win, large_width)
+end
+
 return M

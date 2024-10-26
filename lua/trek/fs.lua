@@ -1,3 +1,5 @@
+local has_devicons, devicons = pcall(require, "nvim-web-devicons")
+---
 ---@class trek.Directory
 ---@field path string
 ---@field entries trek.DirectoryEntry[]
@@ -7,6 +9,8 @@
 ---@field fs_type "file" | "directory"
 ---@field name string
 ---@field path string
+---@field icon string | nil
+---@field icon_hl_group string | nil
 
 ---@class trek.Filesystem
 ---@field directory trek.Directory
@@ -67,23 +71,57 @@ function M.get_dir_content(path)
   while name do
     if fs_type == "file" or fs_type == "directory" then
       local child_path = M.get_child_path(path, name)
-      table.insert(entries, {
+      local entry = {
         fs_type = fs_type,
         name = name,
         path = child_path,
         id = M.add_path_to_index(child_path),
-      })
+      }
+      if fs_type == "file" then
+        local icon, hl = devicons.get_icon(name, nil, { default = false })
+        entry.icon = icon
+        entry.icon_hl_group = hl
+      end
+      table.insert(entries, entry)
     end
     name, fs_type = vim.loop.fs_scandir_next(fs)
   end
   return {
     path = path,
-    entries = entries,
+    entries = M.sort_entries(entries),
   }
 end
 
+---@param entries trek.DirectoryEntry[]
+---@return trek.DirectoryEntry[]
+function M.sort_entries(entries)
+  local directories = {}
+  local files = {}
+  for _, entry in ipairs(entries) do
+    if entry.fs_type == "directory" then
+      table.insert(directories, entry)
+    else
+      table.insert(files, entry)
+    end
+  end
+  table.sort(directories, function(a, b)
+    return string.lower(a.name) < string.lower(b.name)
+  end)
+  table.sort(files, function(a, b)
+    return string.lower(a.name) < string.lower(b.name)
+  end)
+  local sorted_entries = {}
+  for _, dir in ipairs(directories) do
+    table.insert(sorted_entries, dir)
+  end
+  for _, file in ipairs(files) do
+    table.insert(sorted_entries, file)
+  end
+  return sorted_entries
+end
+
 ---@param path string
----@return integer 
+---@return integer
 function M.add_path_to_index(path)
   local cur_id = M.path_index[path]
   if cur_id ~= nil then
