@@ -14,6 +14,10 @@ function M.map(list, cb)
   return result
 end
 
+function M.augroup(name)
+  return vim.api.nvim_create_augroup("trek_" .. name, { clear = true })
+end
+
 function M.notify(msg, level_name)
   vim.notify("(trek.nvim) " .. msg, vim.log.levels[level_name])
 end

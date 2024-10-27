@@ -84,4 +84,18 @@ function M.render_dir(entries, buf_id)
   highlights.add_highlights(buf_id, entries)
 end
 
+---@param left_win_id integer
+---@param center_win_id integer
+M.mark_dirty = vim.schedule_wrap(function(left_win_id, center_win_id)
+  highlights.set_modified_winsep(left_win_id, highlights.colors.warning)
+  highlights.set_modified_winsep(center_win_id, highlights.colors.warning)
+end)
+
+---@param left_win_id integer
+---@param center_win_id integer
+M.mark_clean = vim.schedule_wrap(function(left_win_id, center_win_id)
+  highlights.set_modified_winsep(left_win_id, highlights.colors.base)
+  highlights.set_modified_winsep(center_win_id, highlights.colors.base)
+end)
+
 return M

@@ -1,7 +1,15 @@
+local fs = require("trek.fs")
+local buffer = require("trek.buffer")
+local view = require("trek.view")
 local utils = require("trek.utils")
-local M = {}
-
 ---@class trek.Window
+---@field window trek.WindowData
+local M = {
+  cursor_history = {},
+  opened = false,
+}
+
+---@class trek.WindowData
 ---@field left_win_id integer
 ---@field center_win_id integer
 ---@field right_win_id integer
@@ -10,9 +18,9 @@ local M = {}
 ---@field right_buf_id integer
 ---@field tab_id integer
 
----@return trek.Window
+---@return trek.WindowData
 function M.open()
-  ---@class trek.Window
+  ---@class trek.WindowData
   local window = {}
   vim.cmd("tabnew")
   window.left_win_id = vim.api.nvim_get_current_win()
@@ -27,7 +35,13 @@ function M.open()
   vim.api.nvim_win_set_buf(window.center_win_id, window.center_buf_id)
   vim.api.nvim_win_set_buf(window.right_win_id, window.right_buf_id)
   window.tab_id = vim.api.nvim_get_current_tabpage()
+  M.window = window
+  M.opened = true
   return window
+end
+
+function M.close()
+  M.opened = false
 end
 
 ---@param left_win number
@@ -67,6 +81,78 @@ function M.tweak_cursor(win_id, buf_id)
   end
 
   return cursor
+end
+
+---@param path string
+---@param win_id integer
+function M.store_cursor_pos(path, win_id)
+  M.cursor_history[path] = vim.api.nvim_win_get_cursor(win_id)
+end
+
+---@param path string
+---@param win_id integer
+function M.restore_cursor_pos(path, win_id)
+  local cursor = M.cursor_history[path]
+  if cursor == nil then
+    return
+  end
+  vim.api.nvim_win_set_cursor(win_id, cursor)
+end
+
+---@param entry trek.DirectoryEntry
+function M.render_preview(entry)
+  if entry == nil then
+    return
+  end
+  if entry.fs_type == "directory" then
+    vim.api.nvim_win_set_buf(M.window.right_win_id, M.window.right_buf_id)
+    M.render_dir(entry.path, M.window.right_buf_id)
+  end
+  if entry.fs_type == "file" then
+    buffer.buffer_update_file(M.window.right_buf_id, entry.path)
+  end
+end
+
+---@param path string
+function M.render_current_dir(path)
+  M.render_dir(path, M.window.center_buf_id)
+end
+
+---@param path string
+function M.render_parent_dir(path)
+  M.render_dir(path, M.window.left_buf_id)
+end
+
+---@param path string
+---@param buf_id integer
+function M.render_dir(path, buf_id)
+  local dir = fs.get_dir_content(path)
+  view.render_dir(dir.entries, buf_id)
+end
+
+---@param path string
+function M.render_dirs(path)
+  M.render_current_dir(path)
+  local parent_path = fs.get_parent(path)
+  if parent_path ~= nil then
+    M.render_parent_dir(parent_path)
+  end
+  vim.api.nvim_set_current_win(M.window.center_win_id)
+end
+
+---@param path string
+---@return trek.DirectoryEntry | nil
+function M.update_selected_entry(path)
+  if not M.opened then
+    return nil
+  end
+  local dir = fs.get_dir_content(path)
+  if dir == nil then
+    return nil
+  end
+  M.tweak_cursor(M.window.center_win_id, M.window.center_buf_id)
+  local row = vim.api.nvim_win_get_cursor(M.window.center_win_id)[1]
+  return dir.entries[row]
 end
 
 return M

@@ -1,5 +1,6 @@
 local has_devicons, devicons = pcall(require, "nvim-web-devicons")
 local utils = require("trek.utils")
+local buffer = require("trek.buffer")
 local lsp_helpers = require("trek.lsp.helpers")
 ---
 ---@alias trek.EntryType "file"|"directory"|"socket"|"link"|"fifo"
@@ -85,6 +86,59 @@ function M.get_dir_content(path)
     path = path,
     entries = M.sort_entries(entries),
   }
+end
+
+---@param path string
+---@param buf_id integer
+function M.compute_fs_actions(path, buf_id)
+  -- Compute differences
+  local dir = M.get_dir_content(path)
+  local children_ids = utils.map(dir.entries, function(entry)
+    return entry.id
+  end)
+  local fs_diffs = {}
+  local dir_fs_diff = M.compute_fs_diff(buf_id, path, children_ids)
+  if #dir_fs_diff > 0 then
+    vim.list_extend(fs_diffs, dir_fs_diff)
+  end
+  if #fs_diffs == 0 then
+    return nil
+  end
+
+  -- Convert differences into actions
+  local create, delete_map, rename, move, raw_copy = {}, {}, {}, {}, {}
+
+  -- - Differentiate between create, delete, and copy
+  for _, diff in ipairs(fs_diffs) do
+    if diff.from == nil then
+      table.insert(create, diff.to)
+    elseif diff.to == nil then
+      delete_map[diff.from] = true
+    else
+      table.insert(raw_copy, diff)
+    end
+  end
+
+  -- - Possibly narrow down copy action into move or rename:
+  --   `delete + copy` is `rename` if in same directory and `move` otherwise
+  local copy = {}
+  for _, diff in pairs(raw_copy) do
+    if delete_map[diff.from] then
+      if M.get_parent(diff.from) == M.get_parent(diff.to) then
+        table.insert(rename, diff)
+      else
+        table.insert(move, diff)
+      end
+
+      -- NOTE: Can't use `delete` as array here in order for path to be moved
+      -- or renamed only single time
+      delete_map[diff.from] = nil
+    else
+      table.insert(copy, diff)
+    end
+  end
+
+  return { create = create, delete = vim.tbl_keys(delete_map), copy = copy, rename = rename, move = move }
 end
 
 function M.apply_fs_actions(fs_actions)
@@ -304,13 +358,60 @@ function M.add_path_to_index(path)
 
   return new_id
 end
+
+-- ---@param buf_id integer
+-- function M.is_modified_buffer(buf_id)
+--   local data = M.opened_buffers[buf_id]
+--   return data ~= nil and data.n_modified and data.n_modified > 0
+-- end
+
+---@param buf_id integer
+---@param path string
+---@param children_ids integer[]
+function M.compute_fs_diff(buf_id, path, children_ids)
+  -- if not M.is_modified_buffer(buf_id) then
+  --   return {}
+  -- end
+
+  local lines = vim.api.nvim_buf_get_lines(buf_id, 0, -1, false)
+  local res, present_path_ids = {}, {}
+
+  -- Process present file system entries
+  for _, l in ipairs(lines) do
+    local path_id = utils.match_line_path_id(l)
+    local path_from = M.path_index[path_id]
+
+    -- Use whole line as name if no path id is detected
+    local name_to = path_id ~= nil and l:sub(utils.match_line_offset(l)) or l
+
+    -- Preserve trailing '/' to distinguish between creating file or directory
+    local path_to = M.get_child_path(path, name_to) .. (vim.endswith(name_to, "/") and "/" or "")
+
+    -- Ignore blank lines and already synced entries (even several user-copied)
+    if l:find("^%s*$") == nil and path_from ~= path_to then
+      table.insert(res, { from = path_from, to = path_to })
+    elseif path_id ~= nil then
+      present_path_ids[path_id] = true
+    end
+  end
+
+  -- Detect missing file system entries
+  for _, ref_id in ipairs(children_ids) do
+    if not present_path_ids[ref_id] then
+      table.insert(res, { from = M.path_index[ref_id], to = nil })
+    end
+  end
+
+  return res
+end
+
+-- ///////////////////////[UTILS]////////////////////////////
+--
 ---@return trek.Directory | nil
 function M.get_current_dir()
   return M.directory
 end
 
--- ///////////////////////[UTILS]////////////////////////////
---
 ---@param path string
 ---@return string
 function M.normalize_path(path)
