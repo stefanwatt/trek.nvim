@@ -1,4 +1,5 @@
 local utils = require("trek.utils")
+local highlights = require("trek.highlights")
 local window = require("trek.window")
 local view = require("trek.view")
 local fs = require("trek.fs")
@@ -17,6 +18,7 @@ local M = {}
 function M.open(path)
   M.path = path
   M.window = window.open()
+  M.mark_clean()
   M.opened = true
   window.resize_windows(M.window.left_win_id, M.window.center_win_id, M.window.right_win_id)
   M.render_dirs(path)
@@ -40,6 +42,7 @@ function M.setup_keymaps()
   local opts = { silent = true, buffer = M.window.center_buf_id }
   vim.keymap.set("n", "<Left>", M.up_one_dir, opts)
   vim.keymap.set("n", "<Right>", M.select_entry, opts)
+  vim.keymap.set("n", "q", M.close, opts)
 end
 
 function M.select_entry()
@@ -72,6 +75,7 @@ function M.track_cursor()
   vim.api.nvim_create_autocmd("CursorMoved", {
     group = augroup("trek.Cursor"),
     callback = M.update_preview,
+    buffer = M.window.center_buf_id
   })
 end
 
@@ -134,6 +138,16 @@ function M.render_dirs(path)
     M.render_parent_dir(parent_path)
   end
   vim.api.nvim_set_current_win(M.window.center_win_id)
+end
+
+function M.mark_dirty()
+  highlights.set_modified_winsep(M.window.left_win_id, highlights.colors.warning)
+  highlights.set_modified_winsep(M.window.center_win_id, highlights.colors.warning)
+end
+
+function M.mark_clean()
+  highlights.set_modified_winsep(M.window.left_win_id, highlights.colors.base)
+  highlights.set_modified_winsep(M.window.center_win_id, highlights.colors.base)
 end
 
 return M

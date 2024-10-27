@@ -2,6 +2,10 @@ local M = {
   ns_id = {
     highlight = vim.api.nvim_create_namespace("MiniFilesHighlight"),
   },
+  colors = {
+    warning = vim.fn.synIDattr(vim.fn.hlID("WarningMsg"), "fg#"),
+    base = vim.fn.synIDattr(vim.fn.hlID("LineNr"), "fg#"),
+  },
 }
 
 function M.set_extmark(...)
@@ -30,6 +34,15 @@ function M.add_highlights(buf_id, entries)
     local name_opts = { hl_group = hl_group, end_row = i, end_col = 0, right_gravity = false }
     set_hl(i - 1, name_start - 1, name_opts)
   end
+end
+
+---@param win_id integer
+---@param color string
+function M.set_modified_winsep(win_id, color)
+  vim.wo[win_id].fillchars = "vert:┃,horiz:━,horizup:┻,horizdown:┳,vertleft:┫,vertright:┣,verthoriz:╋"
+  local ns = vim.api.nvim_create_namespace("middle_window_highlights")
+  vim.api.nvim_win_set_hl_ns(win_id, ns)
+  vim.api.nvim_set_hl(ns, "WinSeparator", { fg = color })
 end
 
 return M
