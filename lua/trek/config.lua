@@ -25,9 +25,6 @@ M.config = {
     close = "q",
     go_in = "<Right>",
     go_out = "<Left>",
-    -- reset = "<BS>",
-    -- reveal_cwd = "@",
-    -- show_help = "?",
     synchronize = "=",
   },
 
@@ -59,9 +56,6 @@ function M.setup_config(config)
     ["keymaps.close"] = { config.keymaps.close, "string" },
     ["keymaps.go_in"] = { config.keymaps.go_in, "string" },
     ["keymaps.go_out"] = { config.keymaps.go_out, "string" },
-    ["keymaps.reset"] = { config.keymaps.reset, "string" },
-    ["keymaps.reveal_cwd"] = { config.keymaps.reveal_cwd, "string" },
-    ["keymaps.show_help"] = { config.keymaps.show_help, "string" },
     ["keymaps.synchronize"] = { config.keymaps.synchronize, "string" },
 
     -- ["options.use_as_default_explorer"] = { config.options.use_as_default_explorer, "boolean" },
