@@ -1,4 +1,5 @@
 local utils = require("trek.utils")
+local buffer = require("trek.buffer")
 local highlights = require("trek.highlights")
 local window = require("trek.window")
 local view = require("trek.view")
@@ -43,6 +44,17 @@ function M.setup_keymaps()
   vim.keymap.set("n", "<Left>", M.up_one_dir, opts)
   vim.keymap.set("n", "<Right>", M.select_entry, opts)
   vim.keymap.set("n", "q", M.close, opts)
+  vim.keymap.set("n", "=", M.synchronize, opts)
+end
+
+function M.synchronize()
+  local fs_actions = M.compute_fs_actions()
+  if fs_actions ~= nil then
+    fs.apply_fs_actions(fs_actions)
+  end
+
+  M.render_dirs(M.path)
+  M.update_preview()
 end
 
 function M.select_entry()
@@ -75,7 +87,7 @@ function M.track_cursor()
   vim.api.nvim_create_autocmd("CursorMoved", {
     group = augroup("trek.Cursor"),
     callback = M.update_preview,
-    buffer = M.window.center_buf_id
+    buffer = M.window.center_buf_id,
   })
 end
 
@@ -148,6 +160,57 @@ end
 function M.mark_clean()
   highlights.set_modified_winsep(M.window.left_win_id, highlights.colors.base)
   highlights.set_modified_winsep(M.window.center_win_id, highlights.colors.base)
+end
+
+function M.compute_fs_actions()
+  -- Compute differences
+  local dir = fs.get_dir_content(M.path)
+  local children_ids = utils.map(dir.entries, function(entry)
+    return entry.id
+  end)
+  local fs_diffs = {}
+  local dir_fs_diff = buffer.compute_fs_diff(M.window.center_buf_id, M.path, children_ids)
+  if #dir_fs_diff > 0 then
+    vim.list_extend(fs_diffs, dir_fs_diff)
+  end
+  if #fs_diffs == 0 then
+    return nil
+  end
+
+  -- Convert differences into actions
+  local create, delete_map, rename, move, raw_copy = {}, {}, {}, {}, {}
+
+  -- - Differentiate between create, delete, and copy
+  for _, diff in ipairs(fs_diffs) do
+    if diff.from == nil then
+      table.insert(create, diff.to)
+    elseif diff.to == nil then
+      delete_map[diff.from] = true
+    else
+      table.insert(raw_copy, diff)
+    end
+  end
+
+  -- - Possibly narrow down copy action into move or rename:
+  --   `delete + copy` is `rename` if in same directory and `move` otherwise
+  local copy = {}
+  for _, diff in pairs(raw_copy) do
+    if delete_map[diff.from] then
+      if fs.get_parent(diff.from) == fs.get_parent(diff.to) then
+        table.insert(rename, diff)
+      else
+        table.insert(move, diff)
+      end
+
+      -- NOTE: Can't use `delete` as array here in order for path to be moved
+      -- or renamed only single time
+      delete_map[diff.from] = nil
+    else
+      table.insert(copy, diff)
+    end
+  end
+
+  return { create = create, delete = vim.tbl_keys(delete_map), copy = copy, rename = rename, move = move }
 end
 
 return M
