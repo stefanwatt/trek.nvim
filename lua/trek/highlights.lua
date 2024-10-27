@@ -8,6 +8,14 @@ local M = {
   },
 }
 
+function M.buffer_should_highlight(buf_id)
+  -- Highlight if buffer size is not too big, both in total and per line
+  local buf_size = vim.api.nvim_buf_call(buf_id, function()
+    return vim.fn.line2byte(vim.fn.line("$") + 1)
+  end)
+  return buf_size <= 1000000 and buf_size <= 1000 * vim.api.nvim_buf_line_count(buf_id)
+end
+
 function M.set_extmark(...)
   pcall(vim.api.nvim_buf_set_extmark, ...)
 end

@@ -84,13 +84,4 @@ function M.render_dir(entries, buf_id)
   highlights.add_highlights(buf_id, entries)
 end
 
----@param win_id integer
----@param path string
-function M.open_file(win_id, path)
-  vim.api.nvim_win_call(win_id, function()
-    vim.cmd("e " .. path)
-    vim.cmd("filetype detect")
-  end)
-end
-
 return M

@@ -19,6 +19,21 @@ local M = {}
 function M.open(path)
   M.path = path
   M.window = window.open()
+  buffer.on_lines_changed(M.window.center_buf_id, function(first_line, last_line)
+    M.mark_dirty()
+  end)
+  -- prints: { "lines", 17, 6, 0, 2, 2, 37 }
+  -- • on_lines: Lua callback invoked on change. Return `true` to detach. Args:
+  --                   • the string "lines"
+  --                   • buffer handle
+  --                   • b:changedtick
+  --                   • first line that changed (zero-indexed)
+  --                   • last line that was changed
+  --                   • last line in the updated range
+  --                   • byte count of previous contents
+  --                   • deleted_codepoints (if `utf_sizes` is true)
+  --                   • deleted_codeunits (if `utf_sizes` is true)
+
   M.mark_clean()
   M.opened = true
   window.resize_windows(M.window.left_win_id, M.window.center_win_id, M.window.right_win_id)
@@ -64,7 +79,7 @@ function M.select_entry()
   end
   if M.selected_entry.fs_type == "file" then
     M.close()
-    view.open_file(0, M.selected_entry.path)
+    buffer.buffer_update_file(M.window.right_buf_id, M.selected_entry.path)
     view.restore_window_opts(vim.api.nvim_get_current_win())
     return
   end
@@ -100,18 +115,8 @@ function M.update_preview()
   if dir == nil then
     return
   end
-  if M.selected_entry ~= nil and M.selected_entry.fs_type == "file" then
-    M.clean_buffer()
-  end
   M.selected_entry = dir.entries[row]
   M.render_preview(M.selected_entry)
-end
-
-function M.clean_buffer()
-  local buf_id = vim.api.nvim_win_get_buf(M.window.right_win_id)
-  local tmp_buf_id = vim.api.nvim_create_buf(true, true)
-  vim.api.nvim_win_set_buf(M.window.right_win_id, tmp_buf_id)
-  vim.api.nvim_buf_delete(buf_id, { force = true })
 end
 
 ---@param entry trek.DirectoryEntry
@@ -121,7 +126,7 @@ function M.render_preview(entry)
     M.render_dir(entry.path, M.window.right_buf_id)
   end
   if entry.fs_type == "file" then
-    view.open_file(M.window.right_win_id, M.selected_entry.path)
+    buffer.buffer_update_file(M.window.right_buf_id, M.selected_entry.path)
   end
 end
 

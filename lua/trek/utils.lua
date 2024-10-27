@@ -74,6 +74,12 @@ M.is_absolute = function(dir)
   end
 end
 
+function M.set_buflines(buf_id, lines)
+  local cmd =
+      string.format('lockmarks lua vim.api.nvim_buf_set_lines(%d, 0, -1, false, %s)', buf_id, vim.inspect(lines))
+  vim.cmd(cmd)
+end
+
 --- Returns true if candidate is a subpath of root, or if they are the same path.
 ---@param root string
 ---@param candidate string
