@@ -18,7 +18,7 @@ Basically took [mini.files](https://github.com/echasnovski/mini.files) and chang
 Below is the default configuration for `trek.nvim`:
 
 ```lua
-config = {
+{
   lsp = {
     timeout_ms = 500,
     autosave_changes = true,
