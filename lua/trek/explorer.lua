@@ -3,7 +3,6 @@ local config = require("trek.config")
 local buffer = require("trek.buffer")
 local highlights = require("trek.highlights")
 local window = require("trek.window")
-local view = require("trek.view")
 local fs = require("trek.fs")
 
 ---@class trek.Explorer
@@ -24,14 +23,14 @@ function M.open(path)
   M.path = path
   M.window = window.open()
   buffer.on_lines_changed(M.window.center_buf_id, function(first_line, last_line)
-    view.mark_dirty(M.window.left_win_id, M.window.center_win_id)
+    window.mark_dirty(M.window.left_win_id, M.window.center_win_id)
   end)
-  view.mark_clean(M.window.left_win_id, M.window.center_win_id)
+  window.mark_clean(M.window.left_win_id, M.window.center_win_id)
   M.opened = true
   window.resize_windows(M.window.left_win_id, M.window.center_win_id, M.window.right_win_id)
   window.render_dirs(path)
   for _, win_id in ipairs({ M.window.left_win_id, M.window.center_win_id, M.window.right_win_id }) do
-    view.set_window_opts(win_id)
+    window.set_window_opts(win_id)
   end
   M.track_cursor()
   window.store_cursor_pos(M.path, M.window.center_win_id)
@@ -57,7 +56,7 @@ function M.synchronize()
 
   window.render_dirs(M.path)
   M.update_selected_entry()
-  view.mark_clean(M.window.left_win_id, M.window.center_win_id)
+  window.mark_clean(M.window.left_win_id, M.window.center_win_id)
 end
 
 function M.go_in()
@@ -68,13 +67,13 @@ function M.go_in()
   if M.selected_entry.fs_type == "file" then
     M.close()
     M.open_file(0, M.selected_entry.path)
-    view.restore_window_opts(vim.api.nvim_get_current_win())
+    window.restore_window_opts(vim.api.nvim_get_current_win())
     return
   end
   M.update_path(M.selected_entry.path)
   window.render_dirs(M.path)
   M.update_selected_entry()
-  view.mark_clean(M.window.left_win_id, M.window.center_win_id)
+  window.mark_clean(M.window.left_win_id, M.window.center_win_id)
   window.restore_cursor_pos(M.path, M.window.center_win_id)
 end
 
@@ -90,17 +89,14 @@ function M.go_out()
   M.update_path(parent_path)
   window.render_dirs(parent_path)
   M.update_selected_entry()
-  view.mark_clean(M.window.left_win_id, M.window.center_win_id)
+  window.mark_clean(M.window.left_win_id, M.window.center_win_id)
   -- window.restore_cursor_pos(M.path, M.window.center_win_id)
   if parent_entry_row == -1 then
-    print("could not find parent entry")
     return
   end
   local cursor = vim.api.nvim_win_get_cursor(M.window.center_win_id)
   cursor[1] = parent_entry_row
   vim.schedule(function()
-    print("updating cursor")
-    vim.print(cursor)
     window.set_cursor(M.window.center_win_id, cursor)
   end)
 end
