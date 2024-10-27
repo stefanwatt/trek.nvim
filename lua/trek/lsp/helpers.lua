@@ -90,12 +90,11 @@ function M.will_perform_file_operations(actions)
   end
 
   return function()
-    print("performing lsp fs action")
     workspace.did_create_files(creates)
     workspace.did_delete_files(deletes)
     workspace.did_rename_files(moves)
 
-    local autosave = config.get_config().lsp_file_methods.autosave_changes
+    local autosave = config.get_config().lsp.autosave_changes
     if autosave == false then
       return
     end
