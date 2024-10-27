@@ -1,18 +1,15 @@
 
 # trek.nvim
 
-`trek.nvim` is a modern and minimalistic file explorer plugin for Neovim. It combines miller columns from [mini.files](https://github.com/echasnovski/mini.nvim/tree/main/readmes/mini-files.md) with a static-width, static-column layout inspired by [ranger](https://github.com/ranger/ranger). Designed to provide a streamlined navigation experience, `trek.nvim` is simple in both its UI and codebase, focusing on a fluid file-browsing experience without unnecessary clutter.
+Basically took [mini.files](https://github.com/echasnovski/mini.files) and changed what I don't like about it.
 
 ---
 
 ## ✨ Features
 
-- **Miller Column Navigation**: Effortlessly navigate directories with a clean and organized column view.
-- **Static Layout**: A fullscreen, consistent-width layout with a fixed number of columns for a smooth file-browsing experience.
-- **Simplified Codebase**: Removed confirmation popups and additional prompts for faster navigation.
-- **LSP Integration**: Full support for LSP rename actions, seamlessly integrated from [oil.nvim](https://github.com/stevearc/oil.nvim).
-
-Special thanks to [mini.files](https://github.com/echasnovski/mini.nvim/tree/main/readmes/mini-files.md) and [oil.nvim](https://github.com/stevearc/oil.nvim) for inspiration and source code contributions.
+- **Miller Column Navigation**: I loved this as soon as I first tried it
+- **Static Layout**: I prefer a static, 3-column, full-height layout like in ranger
+- **LSP Integration**: Took lsp renaming functionality from [oil.nvim](https://github.com/stevearc/oil.nvim) and integrated it
 
 ---
 
@@ -21,20 +18,7 @@ Special thanks to [mini.files](https://github.com/echasnovski/mini.nvim/tree/mai
 Below is the default configuration for `trek.nvim`:
 
 ```lua
----@class trek.LSPConfig
----@field timeout_ms integer
----@field autosave_changes boolean
----
----@class trek.KeymapsConfig
----@field close string
----@field go_in string
----@field go_out string
----@field synchronize string
----
----@class trek.Config
----@field keymaps trek.KeymapsConfig
----@field lsp trek.LSPConfig
-M.config = {
+config = {
   lsp = {
     timeout_ms = 500,
     autosave_changes = true,
@@ -47,8 +31,7 @@ M.config = {
   },
 }
 ```
-
-To customize these settings, set up `trek.nvim` with your preferred configurations.
+To customize these settings, call the setup with your configuration.
 
 ---
 
@@ -56,30 +39,17 @@ To customize these settings, set up `trek.nvim` with your preferred configuratio
 
 ### Open `trek.nvim` at the current path
 
-You can open `trek.nvim` at the current path with this simple command:
+You can open `trek.nvim` at the current path with this command:
 
 ```lua
 require("trek").open(vim.api.nvim_buf_get_name(0))
 ```
 
-### `open` Function
-
-The `open` function for `trek.nvim` can be used to open the directory of any given file path:
-
-```lua
----@param path string
-M.open = function(path)
-  local dir = fs.get_directory_of_path(path)
-  explorer.open(dir)
-end
-```
+The `open` function for `trek.nvim` can be used to open the directory of any given file path.
 
 ---
 
-## 🔑 Keybindings
-
-Default keybindings provide intuitive and quick file navigation:
-
+## 🔑 Default Keymaps
 - **Close**: `q`
 - **Go into directory**: `<Right>`
 - **Go out of directory**: `<Left>`
@@ -89,29 +59,44 @@ Default keybindings provide intuitive and quick file navigation:
 
 ## 📦 Installation
 
-Using [packer.nvim](https://github.com/wbthomason/packer.nvim):
+Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 
 ```lua
 use {
-  "yourusername/trek.nvim",
+  "stefanwatt/trek.nvim",
+  
+  dependencies = {
+    "nvim-tree/nvim-web-devicons",
+  },
+  lazy = false,
+  keys = {
+    {
+      "<leader>e",
+      mode = { "n" },
+      function()
+        require("trek").open(vim.api.nvim_buf_get_name(0))
+      end,
+      desc = "File Explorer",
+    },
+  },
   config = function()
-    require("trek").setup {
-      -- Your custom settings here
-    }
+    require("trek").setup({
+      keymaps = {
+        close = "q",
+        go_in = "<Right>",
+        go_out = "<Left>",
+        synchronize = "=",
+      }
+    });
   end
 }
 ```
 
 ---
 
-## 📜 License
-
-`trek.nvim` is licensed under the MIT License.
-
---- 
 
 ### 🙏 Special Thanks
 
 This project is inspired by and includes code from:
-- [mini.files](https://github.com/echasnovski/mini.nvim/tree/main/readmes/mini-files.md) — for miller column structure.
-- [oil.nvim](https://github.com/stevearc/oil.nvim) — for LSP renaming functionality.
+- [mini.files](https://github.com/echasnovski/mini.nvim/tree/main/readmes/mini-files.md) — for large part of the code, especially filesystem
+- [oil.nvim](https://github.com/stevearc/oil.nvim) — for LSP renaming functionality
