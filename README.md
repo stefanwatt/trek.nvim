@@ -1,5 +1,3 @@
-
-# trek.nvim
 <div align="center"><p>
     <a href="https://github.com/stefanwatt/trek.nvim/releases/latest">
       <img alt="Latest release" src="https://img.shields.io/github/v/release/stefanwatt/trek.nvim?style=for-the-badge&logo=starship&color=C9CBFF&logoColor=D9E0EE&labelColor=302D41&include_prerelease&sort=semver" />
@@ -21,7 +19,7 @@
     </a>
    </div>
 
-Basically took [mini.files](https://github.com/echasnovski/mini.files) and changed what I don't like about it.
+**trek.nvim** is basically [mini.files](https://github.com/echasnovski/mini.files) with a different UI and some other changes.
 
 ---
 
