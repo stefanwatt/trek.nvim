@@ -1,5 +1,6 @@
 local fs = require("trek.fs")
 local explorer = require("trek.explorer")
+local window = require("trek.window")
 local config = require("trek.config")
 
 ---@class Trek
@@ -15,6 +16,7 @@ end
 ---@param path string
 M.open = function(path)
   local dir = fs.get_directory_of_path(path)
+  window.opened_from_path = path
   explorer.open(dir)
 end
 

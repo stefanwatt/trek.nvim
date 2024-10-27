@@ -4,6 +4,7 @@ local buffer = require("trek.buffer")
 local utils = require("trek.utils")
 ---@class trek.Window
 ---@field window trek.WindowData
+---@field opened_from_path string
 local M = {
   cursor_history = {},
   opened = false,
@@ -42,9 +43,9 @@ function M.open()
 end
 
 function M.close()
-  vim.api.nvim_buf_delete(M.window.left_buf_id, {force=true})
-  vim.api.nvim_buf_delete(M.window.center_buf_id, {force=true})
-  vim.api.nvim_buf_delete(M.window.right_buf_id, {force=true})
+  vim.api.nvim_buf_delete(M.window.left_buf_id, { force = true })
+  vim.api.nvim_buf_delete(M.window.center_buf_id, { force = true })
+  vim.api.nvim_buf_delete(M.window.right_buf_id, { force = true })
   M.opened = false
 end
 
@@ -121,7 +122,20 @@ end
 ---@param path string
 function M.render_current_dir(path)
   local dir = fs.get_dir_content(path)
+  local entry_row = -1
+  if M.opened_from_path ~= nil then
+    entry_row = utils.find_index(dir.entries, function(entry)
+      return entry.path == M.opened_from_path
+    end)
+  end
   M.render_dir(dir, M.window.center_buf_id)
+  if entry_row ~= -1 then
+    local cursor = vim.api.nvim_win_get_cursor(M.window.center_win_id)
+    cursor[1] = entry_row
+    vim.schedule(function()
+      M.set_cursor(M.window.center_win_id, cursor)
+    end)
+  end
 end
 
 ---@param parent_path string
