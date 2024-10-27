@@ -21,9 +21,10 @@ M.setup = function(args)
   M.config = vim.tbl_deep_extend("force", M.config, args or {})
 end
 
-M.open = function()
-  local path = vim.fn.getcwd(0,0)
-  explorer.open(path)
+---@param path string
+M.open = function(path)
+  local dir = fs.get_directory_of_path(path)
+  explorer.open(dir)
 end
 
 return M

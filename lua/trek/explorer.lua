@@ -70,6 +70,7 @@ function M.synchronize()
 
   M.render_dirs(M.path)
   M.update_preview()
+  M.mark_clean()
 end
 
 function M.select_entry()
@@ -79,23 +80,25 @@ function M.select_entry()
   end
   if M.selected_entry.fs_type == "file" then
     M.close()
-    buffer.buffer_update_file(M.window.right_buf_id, M.selected_entry.path)
+    view.open_file(0, M.selected_entry.path)
     view.restore_window_opts(vim.api.nvim_get_current_win())
     return
   end
   M.path = M.selected_entry.path
   M.render_dirs(M.path)
   M.update_preview()
+  M.mark_clean()
 end
 
 function M.up_one_dir()
-  print("up one dir")
   local parent_path = fs.get_parent(M.path)
-  if parent_path ~= nil then
-    M.path = parent_path
-    M.render_dirs(parent_path)
-    M.update_preview()
+  if parent_path == nil then
+    return
   end
+  M.path = parent_path
+  M.render_dirs(parent_path)
+  M.update_preview()
+  M.mark_clean()
 end
 
 function M.track_cursor()
@@ -157,15 +160,15 @@ function M.render_dirs(path)
   vim.api.nvim_set_current_win(M.window.center_win_id)
 end
 
-function M.mark_dirty()
+M.mark_dirty = vim.schedule_wrap(function()
   highlights.set_modified_winsep(M.window.left_win_id, highlights.colors.warning)
   highlights.set_modified_winsep(M.window.center_win_id, highlights.colors.warning)
-end
+end)
 
-function M.mark_clean()
+M.mark_clean = vim.schedule_wrap(function()
   highlights.set_modified_winsep(M.window.left_win_id, highlights.colors.base)
   highlights.set_modified_winsep(M.window.center_win_id, highlights.colors.base)
-end
+end)
 
 function M.compute_fs_actions()
   -- Compute differences
