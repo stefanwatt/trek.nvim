@@ -15,6 +15,10 @@ end
 ---@field opened boolean
 local M = {}
 
+function M.teardown()
+  --TODO clean up everything
+end
+
 ---@param path string
 function M.open(path)
   M.path = path
@@ -42,7 +46,20 @@ function M.open(path)
     view.set_window_opts(win_id)
   end
   M.track_cursor()
+  M.store_cursor_pos()
   M.setup_keymaps()
+end
+
+function M.store_cursor_pos()
+  M.cursor_history[M.path] = vim.api.nvim_win_get_cursor(M.window.center_win_id)
+end
+
+function M.restore_cursor_pos()
+  local cursor = M.cursor_history[M.path]
+  if cursor == nil then
+    return
+  end
+  vim.api.nvim_win_set_cursor(M.window.center_win_id, cursor)
 end
 
 function M.close()
@@ -80,14 +97,28 @@ function M.select_entry()
   end
   if M.selected_entry.fs_type == "file" then
     M.close()
-    view.open_file(0, M.selected_entry.path)
+    M.open_file(0, M.selected_entry.path)
     view.restore_window_opts(vim.api.nvim_get_current_win())
     return
   end
-  M.path = M.selected_entry.path
+  M.update_path(M.selected_entry.path)
   M.render_dirs(M.path)
   M.update_preview()
   M.mark_clean()
+  M.restore_cursor_pos()
+end
+
+---@param path string
+function M.update_path(path)
+  M.store_cursor_pos()
+  M.path = path
+end
+
+function M.open_file(win_id, path)
+  vim.api.nvim_win_call(win_id, function()
+    vim.cmd("e " .. path)
+    vim.cmd("filetype detect")
+  end)
 end
 
 function M.up_one_dir()
@@ -95,10 +126,11 @@ function M.up_one_dir()
   if parent_path == nil then
     return
   end
-  M.path = parent_path
+  M.update_path(parent_path)
   M.render_dirs(parent_path)
   M.update_preview()
   M.mark_clean()
+  M.restore_cursor_pos()
 end
 
 function M.track_cursor()
