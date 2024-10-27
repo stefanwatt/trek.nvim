@@ -30,11 +30,11 @@ function M.open()
   window.right_win_id = vim.api.nvim_get_current_win()
   window.left_buf_id = vim.api.nvim_create_buf(false, true)
   window.center_buf_id = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_buf_set_name(window.center_buf_id, "Trek File Explorer")
   window.right_buf_id = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_win_set_buf(window.left_win_id, window.left_buf_id)
   vim.api.nvim_win_set_buf(window.center_win_id, window.center_buf_id)
   vim.api.nvim_win_set_buf(window.right_win_id, window.right_buf_id)
+  vim.api.nvim_buf_set_name(window.center_buf_id, "Trek File Explorer")
   window.tab_id = vim.api.nvim_get_current_tabpage()
   M.window = window
   M.opened = true
@@ -42,6 +42,9 @@ function M.open()
 end
 
 function M.close()
+  vim.api.nvim_buf_delete(M.window.left_buf_id, {force=true})
+  vim.api.nvim_buf_delete(M.window.center_buf_id, {force=true})
+  vim.api.nvim_buf_delete(M.window.right_buf_id, {force=true})
   M.opened = false
 end
 
