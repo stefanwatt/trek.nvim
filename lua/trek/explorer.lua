@@ -13,7 +13,9 @@ end
 ---@field path string
 ---@field tab_id integer
 ---@field opened boolean
-local M = {}
+local M = {
+  cursor_history = {},
+}
 
 function M.teardown()
   --TODO clean up everything
@@ -86,7 +88,7 @@ function M.synchronize()
   end
 
   M.render_dirs(M.path)
-  M.update_preview()
+  M.cursor_changed()
   M.mark_clean()
 end
 
@@ -103,7 +105,7 @@ function M.select_entry()
   end
   M.update_path(M.selected_entry.path)
   M.render_dirs(M.path)
-  M.update_preview()
+  M.cursor_changed()
   M.mark_clean()
   M.restore_cursor_pos()
 end
@@ -128,20 +130,20 @@ function M.up_one_dir()
   end
   M.update_path(parent_path)
   M.render_dirs(parent_path)
-  M.update_preview()
+  M.cursor_changed()
   M.mark_clean()
   M.restore_cursor_pos()
 end
 
 function M.track_cursor()
-  vim.api.nvim_create_autocmd("CursorMoved", {
+  vim.api.nvim_create_autocmd({"CursorMoved","CursorMovedI" }, {
     group = augroup("trek.Cursor"),
-    callback = M.update_preview,
+    callback = M.cursor_changed,
     buffer = M.window.center_buf_id,
   })
 end
 
-function M.update_preview()
+function M.cursor_changed()
   if not M.opened then
     return
   end
@@ -150,6 +152,7 @@ function M.update_preview()
   if dir == nil then
     return
   end
+  window.tweak_cursor(M.window.center_win_id, M.window.center_buf_id)
   M.selected_entry = dir.entries[row]
   M.render_preview(M.selected_entry)
 end
