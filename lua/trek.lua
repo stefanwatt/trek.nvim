@@ -1,20 +1,15 @@
 -- main module file
 local fs = require("trek.fs")
 local explorer = require("trek.explorer")
-
----@class Config
----@field opt string Your config option
-local config = {
-  opt = "Hello!",
-}
+local config = require("trek.config")
 
 ---@class Trek
 local M = {}
 
----@type Config
-M.config = config
+---@type trek.Config
+M.config = config.get_config()
 
----@param args Config?
+---@param args trek.Config?
 -- you can define your setup function here. Usually configurations can be merged, accepting outside params and
 -- you can also put some validation here for those.
 M.setup = function(args)

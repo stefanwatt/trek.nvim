@@ -28,9 +28,10 @@ function M.open()
   window.center_win_id = vim.api.nvim_get_current_win()
   vim.cmd("vsplit")
   window.right_win_id = vim.api.nvim_get_current_win()
-  window.left_buf_id = vim.api.nvim_create_buf(true, false)
-  window.center_buf_id = vim.api.nvim_create_buf(true, false)
-  window.right_buf_id = vim.api.nvim_create_buf(true, false)
+  window.left_buf_id = vim.api.nvim_create_buf(false, true)
+  window.center_buf_id = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_name(window.center_buf_id, "Trek File Explorer")
+  window.right_buf_id = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_win_set_buf(window.left_win_id, window.left_buf_id)
   vim.api.nvim_win_set_buf(window.center_win_id, window.center_buf_id)
   vim.api.nvim_win_set_buf(window.right_win_id, window.right_buf_id)
@@ -106,7 +107,8 @@ function M.render_preview(entry)
   end
   if entry.fs_type == "directory" then
     vim.api.nvim_win_set_buf(M.window.right_win_id, M.window.right_buf_id)
-    M.render_dir(entry.path, M.window.right_buf_id)
+    local dir = fs.get_dir_content(entry.path)
+    M.render_dir(dir, M.window.right_buf_id)
   end
   if entry.fs_type == "file" then
     buffer.buffer_update_file(M.window.right_buf_id, entry.path)
@@ -115,18 +117,28 @@ end
 
 ---@param path string
 function M.render_current_dir(path)
-  M.render_dir(path, M.window.center_buf_id)
-end
-
----@param path string
-function M.render_parent_dir(path)
-  M.render_dir(path, M.window.left_buf_id)
-end
-
----@param path string
----@param buf_id integer
-function M.render_dir(path, buf_id)
   local dir = fs.get_dir_content(path)
+  M.render_dir(dir, M.window.center_buf_id)
+end
+
+---@param parent_path string
+---@param path string
+function M.render_parent_dir(parent_path, path)
+  local dir = fs.get_dir_content(parent_path)
+  local parent_entry_row = utils.find_index(dir.entries, function(entry)
+    return entry.path == path
+  end)
+  M.render_dir(dir, M.window.left_buf_id)
+  local cursor = vim.api.nvim_win_get_cursor(M.window.left_win_id)
+  cursor[1] = parent_entry_row
+  vim.schedule(function()
+    M.set_cursor(M.window.left_win_id, cursor)
+  end)
+end
+
+---@param dir trek.Directory
+---@param buf_id integer
+function M.render_dir(dir, buf_id)
   local lines = utils.map(
     dir.entries,
     ---@param entry trek.DirectoryEntry
@@ -144,7 +156,7 @@ function M.render_dirs(path)
   M.render_current_dir(path)
   local parent_path = fs.get_parent(path)
   if parent_path ~= nil then
-    M.render_parent_dir(parent_path)
+    M.render_parent_dir(parent_path, path)
   end
   vim.api.nvim_set_current_win(M.window.center_win_id)
 end

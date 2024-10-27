@@ -1,8 +1,21 @@
 local M = {}
 
+---@class trek.LSPConfig
+---@field timeout_ms integer
+---@field autosave_changes boolean
+---
+---@class trek.KeymapsConfig
+---@field close string
+---@field go_in string
+---@field go_out string
+---@field synchronize string
+---
+---@class trek.Config
+---@field keymaps trek.KeymapsConfig
+---@field lsp trek.LSPConfig
 M.config = {
   -- Customization of shown content
-  lsp_file_methods = {
+  lsp = {
     timeout_ms = 500,
     autosave_changes = true,
   },
@@ -12,31 +25,20 @@ M.config = {
     close = "q",
     go_in = "<Right>",
     go_out = "<Left>",
-    reset = "<BS>",
-    reveal_cwd = "@",
-    show_help = "?",
+    -- reset = "<BS>",
+    -- reveal_cwd = "@",
+    -- show_help = "?",
     synchronize = "=",
   },
 
   -- General options
   options = {
     -- Whether to delete permanently or move into module-specific trash
-    permanent_delete = true,
-    -- Whether to use for editing directories
-    use_as_default_explorer = true,
-    -- Whether to be prompted for confirmation when performing filesystem actions
-    confirm_fs_actions = true,
-  },
-
-  -- Customization of explorer windows
-  windows = {
-    -- Maximum number of windows to show side by side
-    max_number = 3,
-    -- Whether to show preview of file/directory under cursor
-    preview = true,
-    width_focus = math.floor(vim.o.columns * 0.2),
-    width_nofocus = math.floor(vim.o.columns * 0.2),
-    width_preview = math.floor(vim.o.columns * 0.6),
+    -- permanent_delete = true,
+    -- -- Whether to use for editing directories
+    -- use_as_default_explorer = true,
+    -- -- Whether to be prompted for confirmation when performing filesystem actions
+    -- confirm_fs_actions = true,
   },
 }
 
@@ -51,26 +53,19 @@ function M.setup_config(config)
   vim.validate({
     mappings = { config.keymaps, "table" },
     options = { config.options, "table" },
-    windows = { config.windows, "table" },
   })
 
   vim.validate({
-    ["mappings.close"] = { config.keymaps.close, "string" },
-    ["mappings.go_in"] = { config.keymaps.go_in, "string" },
-    ["mappings.go_out"] = { config.keymaps.go_out, "string" },
-    ["mappings.reset"] = { config.keymaps.reset, "string" },
-    ["mappings.reveal_cwd"] = { config.keymaps.reveal_cwd, "string" },
-    ["mappings.show_help"] = { config.keymaps.show_help, "string" },
-    ["mappings.synchronize"] = { config.keymaps.synchronize, "string" },
+    ["keymaps.close"] = { config.keymaps.close, "string" },
+    ["keymaps.go_in"] = { config.keymaps.go_in, "string" },
+    ["keymaps.go_out"] = { config.keymaps.go_out, "string" },
+    ["keymaps.reset"] = { config.keymaps.reset, "string" },
+    ["keymaps.reveal_cwd"] = { config.keymaps.reveal_cwd, "string" },
+    ["keymaps.show_help"] = { config.keymaps.show_help, "string" },
+    ["keymaps.synchronize"] = { config.keymaps.synchronize, "string" },
 
-    ["options.use_as_default_explorer"] = { config.options.use_as_default_explorer, "boolean" },
-    ["options.permanent_delete"] = { config.options.permanent_delete, "boolean" },
-
-    ["windows.max_number"] = { config.windows.max_number, "number" },
-    ["windows.preview"] = { config.windows.preview, "boolean" },
-    ["windows.width_focus"] = { config.windows.width_focus, "number" },
-    ["windows.width_nofocus"] = { config.windows.width_nofocus, "number" },
-    ["windows.width_preview"] = { config.windows.width_preview, "number" },
+    -- ["options.use_as_default_explorer"] = { config.options.use_as_default_explorer, "boolean" },
+    -- ["options.permanent_delete"] = { config.options.permanent_delete, "boolean" },
   })
 
   return config
