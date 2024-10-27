@@ -4,7 +4,7 @@ local M = {
 }
 
 ---@generic T
----@param list Array<`T`>
+---@param list T[]
 ---@param cb function(value: `T`): `T`
 function M.map(list, cb)
   local result = {}
@@ -12,6 +12,31 @@ function M.map(list, cb)
     table.insert(result, cb(value))
   end
   return result
+end
+
+---@generic T
+---@param list T[]
+---@param cb function(value: `T`): boolean
+---@return T | nil
+function M.find(list, cb)
+  for _, value in ipairs(list) do
+    if cb(value) then
+      return value
+    end
+  end
+end
+
+---@generic T
+---@param list T[]
+---@param cb function(value: `T`): boolean
+---@return integer
+function M.find_index(list, cb)
+  for i, value in ipairs(list) do
+    if cb(value) then
+      return i
+    end
+  end
+  return -1
 end
 
 function M.augroup(name)
@@ -80,7 +105,7 @@ end
 
 function M.set_buflines(buf_id, lines)
   local cmd =
-      string.format('lockmarks lua vim.api.nvim_buf_set_lines(%d, 0, -1, false, %s)', buf_id, vim.inspect(lines))
+    string.format("lockmarks lua vim.api.nvim_buf_set_lines(%d, 0, -1, false, %s)", buf_id, vim.inspect(lines))
   vim.cmd(cmd)
 end
 
@@ -194,7 +219,9 @@ function M.match_line_offset(line)
   return line:match("^/.-/.-/()") or 1
 end
 
-M.get_bufline = function(buf_id, line) return vim.api.nvim_buf_get_lines(buf_id, line - 1, line, false)[1] end
+M.get_bufline = function(buf_id, line)
+  return vim.api.nvim_buf_get_lines(buf_id, line - 1, line, false)[1]
+end
 
 ---@param event_name string
 ---@param data table

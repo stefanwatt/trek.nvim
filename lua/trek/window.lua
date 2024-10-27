@@ -57,7 +57,7 @@ function M.resize_windows(left_win, center_win, right_win)
   vim.api.nvim_win_set_width(right_win, large_width)
 end
 
-function M.window_set_cursor(win_id, cursor)
+function M.set_cursor(win_id, cursor)
   if type(cursor) ~= "table" then
     return
   end
@@ -65,7 +65,7 @@ function M.window_set_cursor(win_id, cursor)
   vim.api.nvim_win_set_cursor(win_id, cursor)
 
   -- Tweak cursor here and don't rely on `CursorMoved` event to reduce flicker
-  M.window_tweak_cursor(win_id, vim.api.nvim_win_get_buf(win_id))
+  M.tweak_cursor(win_id, vim.api.nvim_win_get_buf(win_id))
 end
 
 function M.tweak_cursor(win_id, buf_id)

@@ -83,11 +83,26 @@ function M.go_out()
   if parent_path == nil then
     return
   end
+  local dir = fs.get_dir_content(parent_path)
+  local parent_entry_row = utils.find_index(dir.entries, function(entry)
+    return entry.path == M.path
+  end)
   M.update_path(parent_path)
   window.render_dirs(parent_path)
   M.update_selected_entry()
   view.mark_clean(M.window.left_win_id, M.window.center_win_id)
-  window.restore_cursor_pos(M.path, M.window.center_win_id)
+  -- window.restore_cursor_pos(M.path, M.window.center_win_id)
+  if parent_entry_row == -1 then
+    print("could not find parent entry")
+    return
+  end
+  local cursor = vim.api.nvim_win_get_cursor(M.window.center_win_id)
+  cursor[1] = parent_entry_row
+  vim.schedule(function()
+    print("updating cursor")
+    vim.print(cursor)
+    window.set_cursor(M.window.center_win_id, cursor)
+  end)
 end
 
 ---@param path string
