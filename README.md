@@ -82,7 +82,7 @@ The `open` function for `trek.nvim` can be used to open the directory of any giv
 Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 
 ```lua
-use {
+{
   "stefanwatt/trek.nvim",
   
   dependencies = {
