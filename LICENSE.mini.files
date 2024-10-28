@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2024 Stefan Watt
+Copyright (c) 2021 Evgeni Chasnovski
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,17 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-Third-Party Licenses
-
-Portions of this project are derived from the following projects:
-
-oil.nvim
-
-- Copyright (c) 2022 Steven Arcangeli
-- Licensed under the MIT License. See License.oil.nvim
-
-mini.files
-
-- Copyright (c) 2021 Evgeni Chasnovski
-- Licensed under the MIT License. See License.mini.files
