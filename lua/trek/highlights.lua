@@ -1,10 +1,14 @@
 local M = {
   ns_id = {
-    highlight = vim.api.nvim_create_namespace("MiniFilesHighlight"),
+    highlight = vim.api.nvim_create_namespace("TrekHighlight"),
+    left_window = vim.api.nvim_create_namespace("TrekLeftWindow"),
+    center_window = vim.api.nvim_create_namespace("TrekCenterWindow"),
   },
   colors = {
+    info = vim.fn.synIDattr(vim.fn.hlID("Directory"), "fg#"),
     warning = vim.fn.synIDattr(vim.fn.hlID("WarningMsg"), "fg#"),
-    base = vim.fn.synIDattr(vim.fn.hlID("LineNr"), "fg#"),
+    surface = vim.fn.synIDattr(vim.fn.hlID("LineNr"), "fg#"),
+    base = vim.fn.synIDattr(vim.fn.hlID("SignColumnSB"), "bg#"),
   },
 }
 
@@ -18,6 +22,13 @@ end
 
 function M.set_extmark(...)
   pcall(vim.api.nvim_buf_set_extmark, ...)
+end
+
+---@param win_id integer
+---@param ns integer
+function M.set_cursorline(win_id, ns)
+  vim.api.nvim_set_hl(ns, "CursorLine", { bg = M.colors.info, fg = M.colors.base })
+  vim.api.nvim_win_set_hl_ns(win_id, ns)
 end
 
 ---@param buf_id number
@@ -45,12 +56,12 @@ function M.add_highlights(buf_id, entries)
 end
 
 ---@param win_id integer
+---@param ns integer
 ---@param color string
-function M.set_modified_winsep(win_id, color)
+function M.set_modified_winsep(win_id, ns, color)
   vim.wo[win_id].fillchars = "vert:┃,horiz:━,horizup:┻,horizdown:┳,vertleft:┫,vertright:┣,verthoriz:╋"
-  local ns = vim.api.nvim_create_namespace("middle_window_highlights")
   vim.api.nvim_win_set_hl_ns(win_id, ns)
-  vim.api.nvim_set_hl(ns, "WinSeparator", { fg = color })
+  vim.api.nvim_set_hl(M.ns_id.center_window, "WinSeparator", { fg = color })
 end
 
 return M

@@ -105,7 +105,7 @@ end
 
 function M.set_buflines(buf_id, lines)
   local cmd =
-    string.format("lockmarks lua vim.api.nvim_buf_set_lines(%d, 0, -1, false, %s)", buf_id, vim.inspect(lines))
+      string.format("lockmarks lua vim.api.nvim_buf_set_lines(%d, 0, -1, false, %s)", buf_id, vim.inspect(lines))
   vim.cmd(cmd)
 end
 
@@ -212,6 +212,7 @@ function M.match_line_entry_name(line)
 end
 
 ---@param line string
+---@return integer|nil
 function M.match_line_offset(line)
   if line == nil then
     return nil

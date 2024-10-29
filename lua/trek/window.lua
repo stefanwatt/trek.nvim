@@ -36,6 +36,8 @@ function M.open()
   vim.api.nvim_win_set_buf(window.center_win_id, window.center_buf_id)
   vim.api.nvim_win_set_buf(window.right_win_id, window.right_buf_id)
   vim.api.nvim_buf_set_name(window.center_buf_id, "Trek File Explorer")
+  highlights.set_cursorline(window.left_win_id, highlights.ns_id.left_window)
+  highlights.set_cursorline(window.center_win_id, highlights.ns_id.center_window)
   window.tab_id = vim.api.nvim_get_current_tabpage()
   M.window = window
   M.opened = true
@@ -62,7 +64,11 @@ function M.resize_windows(left_win, center_win, right_win)
   vim.api.nvim_win_set_width(right_win, large_width)
 end
 
-function M.set_cursor(win_id, cursor)
+---@param win_id integer
+---@param row integer
+function M.set_cursor(win_id, row)
+  local cursor = vim.api.nvim_win_get_cursor(M.window.center_win_id)
+  cursor[1] = row
   if type(cursor) ~= "table" then
     return
   end
@@ -73,6 +79,16 @@ function M.set_cursor(win_id, cursor)
   M.tweak_cursor(win_id, vim.api.nvim_win_get_buf(win_id))
 end
 
+function M.reset_cursor(win_id, buf_id)
+  print("reset_cursor")
+  local cursor = vim.api.nvim_win_get_cursor(win_id)
+  local l = utils.get_bufline(buf_id, cursor[1])
+  local cur_offset = utils.match_line_offset(l)
+  cursor[2] = cur_offset - 1
+  vim.api.nvim_win_set_cursor(win_id, cursor)
+  vim.cmd("normal! 1000zh")
+end
+
 function M.tweak_cursor(win_id, buf_id)
   local cursor = vim.api.nvim_win_get_cursor(win_id)
   local l = utils.get_bufline(buf_id, cursor[1])
@@ -80,11 +96,11 @@ function M.tweak_cursor(win_id, buf_id)
   local cur_offset = utils.match_line_offset(l)
   if cursor[2] < (cur_offset - 1) then
     cursor[2] = cur_offset - 1
+    vim.print("setting cursor ", cursor)
     vim.api.nvim_win_set_cursor(win_id, cursor)
     -- Ensure icons are shown (may be not the case after horizontal scroll)
     vim.cmd("normal! 1000zh")
   end
-
   return cursor
 end
 
@@ -130,10 +146,8 @@ function M.render_current_dir(path)
   end
   M.render_dir(dir, M.window.center_buf_id)
   if entry_row ~= -1 then
-    local cursor = vim.api.nvim_win_get_cursor(M.window.center_win_id)
-    cursor[1] = entry_row
     vim.schedule(function()
-      M.set_cursor(M.window.center_win_id, cursor)
+      M.set_cursor(M.window.center_win_id, entry_row)
     end)
   end
 end
@@ -146,10 +160,8 @@ function M.render_parent_dir(parent_path, path)
     return entry.path == path
   end)
   M.render_dir(dir, M.window.left_buf_id)
-  local cursor = vim.api.nvim_win_get_cursor(M.window.left_win_id)
-  cursor[1] = parent_entry_row
   vim.schedule(function()
-    M.set_cursor(M.window.left_win_id, cursor)
+    M.set_cursor(M.window.left_win_id, parent_entry_row)
   end)
 end
 
@@ -188,7 +200,8 @@ function M.update_selected_entry(path)
   if dir == nil then
     return nil
   end
-  M.tweak_cursor(M.window.center_win_id, M.window.center_buf_id)
+  --NOTE not sure if I like this, could be annoying in visual mode etc.
+  M.reset_cursor(M.window.center_win_id, M.window.center_buf_id)
   local row = vim.api.nvim_win_get_cursor(M.window.center_win_id)[1]
   return dir.entries[row]
 end
@@ -218,7 +231,6 @@ function M.set_window_opts(win_id)
     foldenable = vim.wo[win_id].foldenable,
     wrap = vim.wo[win_id].wrap,
   }
-
   vim.api.nvim_win_set_option(win_id, "number", false)
   vim.api.nvim_win_set_option(win_id, "relativenumber", false)
   vim.api.nvim_win_call(win_id, function()
@@ -256,15 +268,31 @@ end
 ---@param left_win_id integer
 ---@param center_win_id integer
 M.mark_dirty = vim.schedule_wrap(function(left_win_id, center_win_id)
-  highlights.set_modified_winsep(left_win_id, highlights.colors.warning)
-  highlights.set_modified_winsep(center_win_id, highlights.colors.warning)
+  highlights.set_modified_winsep(
+    left_win_id,
+    highlights.ns_id.left_window,
+    highlights.colors.warning
+  )
+  highlights.set_modified_winsep(
+    center_win_id,
+    highlights.ns_id.center_window,
+    highlights.colors.warning
+  )
 end)
 
 ---@param left_win_id integer
 ---@param center_win_id integer
 M.mark_clean = vim.schedule_wrap(function(left_win_id, center_win_id)
-  highlights.set_modified_winsep(left_win_id, highlights.colors.base)
-  highlights.set_modified_winsep(center_win_id, highlights.colors.base)
+  highlights.set_modified_winsep(
+    left_win_id,
+    highlights.ns_id.left_window,
+    highlights.colors.base
+  )
+  highlights.set_modified_winsep(
+    center_win_id,
+    highlights.ns_id.center_window,
+    highlights.colors.base
+  )
 end)
 
 return M

@@ -10,6 +10,7 @@ local fs = require("trek.fs")
 ---@field tab_id integer
 ---@field opened boolean
 ---@field window trek.WindowData
+---@field cursor integer[]
 local M = {
   cursor_history = {},
 }
@@ -94,10 +95,8 @@ function M.go_out()
   if parent_entry_row == -1 then
     return
   end
-  local cursor = vim.api.nvim_win_get_cursor(M.window.center_win_id)
-  cursor[1] = parent_entry_row
   vim.schedule(function()
-    window.set_cursor(M.window.center_win_id, cursor)
+    window.set_cursor(M.window.center_win_id, parent_entry_row)
   end)
 end
 
@@ -117,7 +116,13 @@ end
 function M.track_cursor()
   vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
     group = utils.augroup("trek.Cursor"),
-    callback = M.update_selected_entry,
+    callback = function()
+      local updated_cursor = vim.api.nvim_win_get_cursor(M.window.center_win_id)
+      if M.cursor ~= nil and M.cursor[1] ~= updated_cursor[1] then
+        M.update_selected_entry()
+      end
+      M.cursor = window.tweak_cursor(M.window.center_win_id, M.window.center_buf_id)
+    end,
     buffer = M.window.center_buf_id,
   })
 end
