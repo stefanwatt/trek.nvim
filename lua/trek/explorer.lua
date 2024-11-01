@@ -53,21 +53,21 @@ function M.open(path)
   M.window = window.open()
   M.dir = fs.get_dir_content(path)
   M.listen_for_center_buf_changes()
-  window.mark_clean(M.window.left_win_id, M.window.center_win_id)
+  window.mark_clean(M.window.left.win_id, M.window.center.win_id)
   M.opened = true
-  window.resize_windows(M.window.left_win_id, M.window.center_win_id, M.window.right_win_id)
+  window.resize_windows(M.window.left.win_id, M.window.center.win_id, M.window.right.win_id)
   window.render_dirs(path)
-  for _, win_id in ipairs({ M.window.left_win_id, M.window.center_win_id, M.window.right_win_id }) do
+  for _, win_id in ipairs({ M.window.left.win_id, M.window.center.win_id, M.window.right.win_id }) do
     window.set_window_opts(win_id)
   end
   M.track_cursor()
-  window.store_cursor_pos(M.dir.path, M.window.center_win_id)
+  window.store_cursor_pos(M.dir.path, M.window.center.win_id)
   M.setup_keymaps()
   -- window.show_selection_mode_info()
 end
 
 function M.listen_for_center_buf_changes()
-  buffer.on_lines_changed(M.window.center_buf_id, function(first_line, last_line)
+  buffer.on_lines_changed(M.window.center.buf_id, function(first_line, last_line)
     if not M.opened then
       return true
     end
@@ -75,8 +75,8 @@ function M.listen_for_center_buf_changes()
       M.stop_listening_on_next_buf_change = false
       return true
     end
-    window.mark_dirty(M.window.left_win_id, M.window.center_win_id)
-    M.dir.entries = buffer.parse_entries(M.window.center_buf_id, M.dir.entries)
+    window.mark_dirty(M.window.left.win_id, M.window.center.win_id)
+    M.dir.entries = buffer.parse_entries(M.window.center.buf_id, M.dir.entries)
   end)
 end
 
@@ -91,7 +91,7 @@ function M.close()
 end
 
 function M.synchronize()
-  local fs_actions = fs.compute_fs_actions(M.dir.path, M.window.center_buf_id)
+  local fs_actions = fs.compute_fs_actions(M.dir.path, M.window.center.buf_id)
   if fs_actions ~= nil then
     fs.apply_fs_actions(fs_actions)
   end
@@ -100,7 +100,7 @@ function M.synchronize()
   M.selected_entry = M.update_selected_entry()
   assert(M.selected_entry ~= nil, "selected_entry cannot be nil after go synchronize")
   M.dir = fs.get_dir_content(M.dir.path)
-  window.mark_clean(M.window.left_win_id, M.window.center_win_id)
+  window.mark_clean(M.window.left.win_id, M.window.center.win_id)
 end
 
 function M.go_in()
@@ -119,8 +119,8 @@ function M.go_in()
   window.render_dirs(M.dir.path)
   M.selected_entry = M.update_selected_entry()
   assert(M.selected_entry ~= nil, "selected_entry cannot be nil after go in")
-  window.mark_clean(M.window.left_win_id, M.window.center_win_id)
-  window.restore_cursor_pos(M.dir.path, M.window.center_win_id)
+  window.mark_clean(M.window.left.win_id, M.window.center.win_id)
+  window.restore_cursor_pos(M.dir.path, M.window.center.win_id)
   M.listen_for_center_buf_changes()
 end
 
@@ -137,17 +137,17 @@ function M.go_out()
   window.render_dirs(parent_path)
   M.selected_entry = M.update_selected_entry()
   assert(M.selected_entry ~= nil, "selected_entry cannot be nil after go out")
-  window.mark_clean(M.window.left_win_id, M.window.center_win_id)
+  window.mark_clean(M.window.left.win_id, M.window.center.win_id)
   M.listen_for_center_buf_changes()
   if parent_entry_row == -1 then
     return
   end
-  window.set_cursor(M.window.center_win_id, parent_entry_row)
+  window.set_cursor(M.window.center.win_id, parent_entry_row)
 end
 
 ---@param path string
 function M.update_path(path)
-  window.store_cursor_pos(M.dir.path, M.window.center_win_id)
+  window.store_cursor_pos(M.dir.path, M.window.center.win_id)
   M.dir = fs.get_dir_content(path)
 end
 
@@ -162,16 +162,16 @@ function M.track_cursor()
   M.cursor_autocmd_id = vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
     group = utils.augroup("trek.Cursor"),
     callback = function()
-      local updated_cursor = vim.api.nvim_win_get_cursor(M.window.center_win_id)
+      local updated_cursor = vim.api.nvim_win_get_cursor(M.window.center.win_id)
       if M.cursor ~= nil and M.cursor[1] ~= updated_cursor[1] then
         local selected_entry = M.update_selected_entry()
         if selected_entry ~= nil then
           M.selected_entry = selected_entry
         end
       end
-      M.cursor = window.tweak_cursor(M.window.center_win_id, M.window.center_buf_id)
+      M.cursor = window.tweak_cursor(M.window.center.win_id, M.window.center.buf_id)
     end,
-    buffer = M.window.center_buf_id,
+    buffer = M.window.center.buf_id,
   })
 end
 
@@ -201,9 +201,9 @@ function M.update_dir(dir)
   end
 end
 
-function M.mark_entry()
-  local row = vim.api.nvim_win_get_cursor(M.window.center_win_id)[1]
-  local line = utils.get_bufline(M.window.center_buf_id, row)
+function M.toggle_entry_marked()
+  local row = vim.api.nvim_win_get_cursor(M.window.center.win_id)[1]
+  local line = utils.get_bufline(M.window.center.buf_id, row)
   local path_id = utils.match_line_path_id(line)
   local entry_index = utils.find_index(M.dir.entries, function(entry)
     return entry.id == path_id
@@ -211,21 +211,27 @@ function M.mark_entry()
   assert(entry_index ~= -1, "tried to select an entry that doesn't exist in M.dir.entries")
   M.dir.entries[entry_index].marked = not M.dir.entries[entry_index].marked
   M.stop_listening_on_next_buf_change = true
-  window.render_dir(M.dir, M.window.center_buf_id)
+  window.render_dir(M.dir, M.window.center.buf_id)
   M.listen_for_center_buf_changes()
-  M.mode = utils.find_index(M.dir.entries, function(entry)
+  local marked_entries = utils.filter(M.dir.entries, function(entry)
     return entry.marked
-  end) ~= -1 and "selection" or "normal"
+  end)
+  if #marked_entries > 1 then
+    window.show_selection_mode_info(#marked_entries)
+  else
+    window.hide_selection_mode_info()
+  end
+  M.mode = #marked_entries > 0 and "selection" or "normal"
 end
 
 function M.setup_keymaps()
-  local opts = { silent = true, buffer = M.window.center_buf_id }
+  local opts = { silent = true, buffer = M.window.center.buf_id }
   local keymaps = config.get_config().keymaps
   vim.keymap.set("n", keymaps.go_out, M.go_out, opts)
   vim.keymap.set("n", keymaps.go_in, M.go_in, opts)
   vim.keymap.set("n", keymaps.close, M.close, opts)
   vim.keymap.set("n", keymaps.synchronize, M.synchronize, opts)
-  vim.keymap.set("n", keymaps.mark_entry, M.mark_entry, opts)
+  vim.keymap.set("n", keymaps.toggle_entry_marked, M.toggle_entry_marked, opts)
 end
 
 return M

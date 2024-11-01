@@ -9,7 +9,7 @@ local M = {}
 ---@field go_in string
 ---@field go_out string
 ---@field synchronize string
----@field mark_entry string
+---@field toggle_entry_marked string
 ---
 ---@class trek.Config
 ---@field keymaps trek.KeymapsConfig
@@ -24,7 +24,7 @@ M.config = {
     go_in = "<Right>",
     go_out = "<Left>",
     synchronize = "=",
-    mark_entry = "<Tab>",
+    toggle_entry_marked = "<Tab>",
   },
   --TODO use_as_default_explorer = true,
   windows = {
@@ -52,7 +52,7 @@ function M.setup_config(config)
     ["keymaps.go_in"] = { config.keymaps.go_in, "string" },
     ["keymaps.go_out"] = { config.keymaps.go_out, "string" },
     ["keymaps.synchronize"] = { config.keymaps.synchronize, "string" },
-    ["keymaps.mark_entry"] = { config.keymaps.mark_entry, "string" },
+    ["keymaps.toggle_entry_marked"] = { config.keymaps.toggle_entry_marked, "string" },
 
     -- ["options.use_as_default_explorer"] = { config.options.use_as_default_explorer, "boolean" },
     -- ["options.permanent_delete"] = { config.options.permanent_delete, "boolean" },
