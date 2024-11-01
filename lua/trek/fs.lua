@@ -202,7 +202,7 @@ function M.apply_fs_actions(fs_actions)
   -- Delete last to not lose anything too early (just in case)
   for _, path in ipairs(fs_actions.delete) do
     local config = require("trek.config").get_config()
-    local ok, success = pcall(M.delete, path, config.options.permanent_delete)
+    local ok, success = pcall(M.delete, path, config.permanent_delete)
     local data = { action = "delete", from = path }
     if ok and success then
       utils.trigger_event("TrekActionDelete", data)
