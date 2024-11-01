@@ -10,7 +10,7 @@ local discarded_first = false
 ---@param buf_id integer
 ---@param cb function()
 function M.on_lines_changed(buf_id, cb)
-  --TODO it's annoying that this also triggers when i call buf_set_lines
+  --TODO: it's annoying that this also triggers when i call buf_set_lines
   discarded_first = false
   vim.api.nvim_buf_attach(buf_id, false, {
     on_lines = function(

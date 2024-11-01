@@ -26,7 +26,8 @@ M.config = {
     synchronize = "=",
     toggle_entry_marked = "<Tab>",
   },
-  --TODO use_as_default_explorer = true,
+
+  --TODO: use_as_default_explorer = true,
   windows = {
     preview_width_percent = 50,
   },

@@ -80,7 +80,7 @@ end
 ---@param scheme nil|string
 ---@return nil|trek.Adapter
 function M.get_adapter_by_scheme(scheme)
-  ---TODO: implement, but we dont need it to be as complex as in oil
+  ---TODO:: implement, but we dont need it to be as complex as in oil
   ---seems like in the lsp stuff it's only used for the name property
   return { name = "files" }
 end

@@ -86,21 +86,23 @@ function M.close()
     return
   end
   M.teardown()
-  --TODO why does this say it's the last tab page
+  --TODO: why does this say it's the last tab page
   pcall(vim.cmd, "tabc")
 end
 
 function M.synchronize()
+  --TODO: bug: when pasting files into a new directory preview doesnt work afther synch
   local fs_actions = fs.compute_fs_actions(M.dir.path, M.window.center.buf_id)
   if fs_actions ~= nil then
     fs.apply_fs_actions(fs_actions)
   end
 
   window.render_dirs(M.dir.path)
-  M.selected_entry = M.update_selected_entry()
-  assert(M.selected_entry ~= nil, "selected_entry cannot be nil after go synchronize")
   M.dir = fs.get_dir_content(M.dir.path)
   window.mark_clean(M.window.left.win_id, M.window.center.win_id)
+  M.selected_entry = window.update_selected_entry(M.dir.entries)
+  assert(M.selected_entry ~= nil, "selected_entry cannot be nil after go synchronize")
+  window.render_preview(M.selected_entry)
 end
 
 function M.go_in()
@@ -213,20 +215,85 @@ function M.toggle_entry_marked()
   M.stop_listening_on_next_buf_change = true
   window.render_dir(M.dir, M.window.center.buf_id)
   M.listen_for_center_buf_changes()
-  local marked_entries = utils.filter(M.dir.entries, function(entry)
-    return entry.marked
-  end)
+  local marked_entries = M.get_marked_entries()
   if #marked_entries > 1 then
     window.show_selection_mode_info(#marked_entries)
   else
     window.hide_selection_mode_info()
   end
-  M.mode = #marked_entries > 0 and "selection" or "normal"
+  if #marked_entries > 0 and M.mode == "normal" then
+    M.enter_selection_mode()
+    return
+  end
+  if #marked_entries == 0 and M.mode == "selection" then
+    M.exit_selection_mode()
+  end
+end
+
+---@return trek.DirectoryEntry[]
+function M.get_marked_entries()
+  return utils.filter(M.dir.entries, function(entry)
+    return entry.marked
+  end)
+end
+
+function M.enter_selection_mode()
+  M.mode = "selection"
+  local opts = { silent = true, buffer = M.window.center.buf_id }
+  vim.keymap.set("n", "y", M.yank_marked_entries, opts)
+  vim.keymap.set("n", "d", M.delete_marked_entries, opts)
+end
+
+function M.yank_marked_entries()
+  local marked_entries = M.get_marked_entries()
+  local rows = utils.map(marked_entries, function(entry)
+    local row = utils.find_index(M.dir.entries, function(_entry)
+      return _entry.id == entry.id
+    end)
+    assert(row ~= -1, "didnt find corresponding row to marked entry")
+    return utils.get_bufline(M.window.center.buf_id, row)
+  end)
+  local yanked_text = table.concat(rows, "\n")
+  vim.fn.setreg("0", yanked_text)
+  vim.fn.setreg("+", yanked_text)
+  M.exit_selection_mode()
+end
+
+function M.delete_marked_entries()
+  M.yank_marked_entries()
+  local lines = vim.api.nvim_buf_get_lines(M.window.center.buf_id, 0, -1, false)
+  lines = utils.filter(lines, function(line)
+    local path_id = utils.match_line_path_id(line)
+    local entry = utils.find(M.dir.entries, function(entry)
+      return entry.id == path_id
+    end)
+    assert(entry ~= nil, "couldnt find entry to delete")
+    return not entry.marked
+  end)
+  M.stop_listening_on_next_buf_change = true
+  utils.set_buflines(M.window.center.buf_id, lines)
+  M.listen_for_center_buf_changes()
+  M.exit_selection_mode()
+end
+
+function M.exit_selection_mode()
+  if M.mode == "normal" then return end
+  window.hide_selection_mode_info()
+  for _, entry in ipairs(M.dir.entries) do
+    entry.marked = false
+  end
+  M.mode = "normal"
+  local opts = { silent = true, buffer = M.window.center.buf_id }
+  --TODO: make sure this doesn't mess shit up with regular yank keymaps
+  vim.keymap.del("n", "y", opts)
+  vim.keymap.del("n", "d", opts)
+  window.render_dir(M.dir, M.window.center.buf_id)
 end
 
 function M.setup_keymaps()
   local opts = { silent = true, buffer = M.window.center.buf_id }
   local keymaps = config.get_config().keymaps
+  vim.keymap.set("n", "p", "o<Esc>p", opts)
   vim.keymap.set("n", keymaps.go_out, M.go_out, opts)
   vim.keymap.set("n", keymaps.go_in, M.go_in, opts)
   vim.keymap.set("n", keymaps.close, M.close, opts)

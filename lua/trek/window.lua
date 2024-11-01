@@ -18,7 +18,7 @@ end
 ---@class trek.Window
 ---@field window trek.WindowData
 ---@field opened_from_path string
----TODO this seems sketchy
+---TODO: this seems sketchy
 local M = {
   cursor_history = {},
   opened = false,

@@ -283,7 +283,7 @@ function M.move(from, to)
   -- restores previous concealed path index)
   M.replace_path_in_index(from, to)
 
-  -- TODO Rename in loaded buffers
+  -- TODO: Rename in loaded buffers
   -- for _, buf_id in ipairs(vim.api.nvim_list_bufs()) do
   --   M.event_listeners.rename_loaded_buffer(buf_id, from, to)
   -- end
