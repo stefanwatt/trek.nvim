@@ -5,6 +5,7 @@ local utils = require("trek.utils")
 ---@class trek.Window
 ---@field window trek.WindowData
 ---@field opened_from_path string
+---TODO this seems sketchy
 local M = {
   cursor_history = {},
   opened = false,
@@ -253,8 +254,6 @@ function M.restore_window_opts(win_id)
     vim.api.nvim_win_call(win_id, function()
       vim.fn.clearmatches()
     end)
-  else
-    print("No original options stored for window " .. win_id)
   end
 end
 

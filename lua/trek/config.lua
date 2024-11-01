@@ -14,28 +14,21 @@ local M = {}
 ---@field keymaps trek.KeymapsConfig
 ---@field lsp trek.LSPConfig
 M.config = {
-  -- Customization of shown content
   lsp = {
     timeout_ms = 500,
     autosave_changes = true,
   },
-  -- Module mappings created only inside explorer.
-  -- Use `''` (empty string) to not create one.
   keymaps = {
     close = "q",
     go_in = "<Right>",
     go_out = "<Left>",
     synchronize = "=",
   },
-
-  -- Whether to delete permanently or move into module-specific trash
-  -- -- Whether to use for editing directories
-  -- use_as_default_explorer = true,
-  -- -- Whether to be prompted for confirmation when performing filesystem actions
+  --TODO use_as_default_explorer = true,
   windows = {
     preview_width_percent = 50,
   },
-  confirm_fs_actions = true,
+  confirm_fs_actions = false,
   permanent_delete = true,
 }
 

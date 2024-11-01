@@ -91,7 +91,6 @@ end
 ---@param path string
 ---@param buf_id integer
 function M.compute_fs_actions(path, buf_id)
-  -- Compute differences
   local dir = M.get_dir_content(path)
   local children_ids = utils.map(dir.entries, function(entry)
     return entry.id
@@ -431,7 +430,7 @@ end
 function M.get_directory_of_path(path)
   local full_path = M.full_path(path)
   local stat = vim.loop.fs_stat(full_path)
-
+  assert(stat ~= nil, "not a valid path")
   if stat and stat.type == "directory" then
     return full_path
   else
