@@ -3,8 +3,8 @@ local highlights = require("trek.highlights")
 local buffer = require("trek.buffer")
 local utils = require("trek.utils")
 
-local icon_checked = "󰄲"
-local icon_not_checked = "󰄮"
+local icon_checked = ""
+local icon_not_checked = ""
 
 local function get_default_window()
   return {
