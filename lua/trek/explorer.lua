@@ -37,7 +37,7 @@ local M = {
   opened = false,
   stop_listening_on_next_buf_change = false,
   cursor_history = {},
-  pending_fs_actions = {}
+  pending_fs_actions = {},
 }
 
 function M.teardown()
@@ -95,15 +95,22 @@ end
 
 function M.synchronize()
   local fs_actions = fs.compute_fs_actions(M.dir.path, M.window.center.buf_id)
-  if fs_actions == nil then return end
+  if fs_actions == nil then
+    return
+  end
   for path, pending_fs_actions in pairs(M.pending_fs_actions) do
     assert(
       pending_fs_actions ~= nil
-      and pending_fs_actions.delete ~= nil and fs_actions.delete ~= nil
-      and pending_fs_actions.copy ~= nil and fs_actions.copy ~= nil
-      and pending_fs_actions.create ~= nil and fs_actions.create ~= nil
-      and pending_fs_actions.move ~= nil and fs_actions.move ~= nil
-      and pending_fs_actions.rename ~= nil and fs_actions.rename ~= nil,
+        and pending_fs_actions.delete ~= nil
+        and fs_actions.delete ~= nil
+        and pending_fs_actions.copy ~= nil
+        and fs_actions.copy ~= nil
+        and pending_fs_actions.create ~= nil
+        and fs_actions.create ~= nil
+        and pending_fs_actions.move ~= nil
+        and fs_actions.move ~= nil
+        and pending_fs_actions.rename ~= nil
+        and fs_actions.rename ~= nil,
       "fsactions: shouldnt be possible for any of this to be nil"
     )
     if path ~= M.path then
@@ -266,6 +273,8 @@ function M.enter_selection_mode()
     M.exit_selection_mode()
   end, opts)
   vim.keymap.set("n", "d", M.delete_marked_entries, opts)
+  vim.keymap.set("n", "q", M.exit_selection_mode, opts)
+  vim.keymap.set("n", "<Esc>", M.exit_selection_mode, opts)
 end
 
 function M.yank_marked_entries()
@@ -300,13 +309,17 @@ function M.delete_marked_entries()
 end
 
 function M.exit_selection_mode()
-  if M.mode == "normal" then return end
+  if M.mode == "normal" then
+    return
+  end
   window.hide_selection_mode_info()
   for _, entry in ipairs(M.dir.entries) do
     entry.marked = false
   end
   M.mode = "normal"
   local opts = { silent = true, buffer = M.window.center.buf_id }
+  vim.keymap.del("n", "q", opts)
+  vim.keymap.del("n", "<Esc>", opts)
   vim.keymap.del("n", "y", opts)
   vim.keymap.del("n", "d", opts)
   window.render_dir(M.dir, M.window.center.buf_id)
