@@ -16,6 +16,20 @@ end
 
 ---@generic T
 ---@param list T[]
+---@param predicate function(value: T): boolean
+---@return T[]
+function M.filter(list, predicate)
+  local result = {}
+  for _, value in ipairs(list) do
+    if predicate(value) then
+      table.insert(result, value)
+    end
+  end
+  return result
+end
+
+---@generic T
+---@param list T[]
 ---@param cb function(value: `T`): boolean
 ---@return T | nil
 function M.find(list, cb)

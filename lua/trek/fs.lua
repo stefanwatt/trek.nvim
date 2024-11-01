@@ -35,18 +35,6 @@ local lsp_helpers = require("trek.lsp.helpers")
 ---@field url string
 ---@field column string
 ---@field value any
----
----@class trek.Directory
----@field path string
----@field entries trek.DirectoryEntry[]
-
----@class trek.DirectoryEntry
----@field id integer
----@field fs_type "file" | "directory"
----@field name string
----@field path string
----@field icon string | nil
----@field icon_hl_group string | nil
 
 ---@class trek.Filesystem
 ---@field directory trek.Directory
@@ -437,6 +425,7 @@ function M.get_directory_of_path(path)
     return M.get_parent(full_path) or ""
   end
 end
+
 ---@param path string
 ---@return string | nil
 function M.get_parent(path)
@@ -467,6 +456,7 @@ function M.get_type(path)
   end
   return vim.fn.isdirectory(path) == 1 and "directory" or "file"
 end
+
 function M.warn_existing_path(path, action)
   utils.notify(string.format("Can not %s %s. Target path already exists.", action, path), "WARN")
   return false

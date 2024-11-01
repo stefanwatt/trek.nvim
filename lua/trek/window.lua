@@ -2,6 +2,10 @@ local fs = require("trek.fs")
 local highlights = require("trek.highlights")
 local buffer = require("trek.buffer")
 local utils = require("trek.utils")
+
+local icon_checked = "󰄲"
+local icon_not_checked = "󰄮"
+
 ---@class trek.Window
 ---@field window trek.WindowData
 ---@field opened_from_path string
@@ -169,12 +173,20 @@ end
 ---@param dir trek.Directory
 ---@param buf_id integer
 function M.render_dir(dir, buf_id)
+  local is_selection_mode = utils.find_index(dir.entries, function(entry)
+    return entry.marked
+  end) ~= -1
   local lines = utils.map(
     dir.entries,
     ---@param entry trek.DirectoryEntry
     function(entry)
       local icon = M.get_icon(entry)
-      return "/" .. entry.id .. "/" .. icon .. " /" .. entry.name
+      local checkbox = ""
+      if is_selection_mode then
+        checkbox = entry.marked and icon_checked or icon_not_checked
+        checkbox = checkbox .. "  "
+      end
+      return "/" .. entry.id .. "/" .. checkbox .. icon .. " /" .. entry.name
     end
   )
   vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, lines)
@@ -249,7 +261,6 @@ function M.restore_window_opts(win_id)
     vim.wo[win_id].concealcursor = opts.concealcursor
     vim.wo[win_id].foldenable = opts.foldenable
     vim.wo[win_id].wrap = opts.wrap
-
     M.original_win_opts = nil
     vim.api.nvim_win_call(win_id, function()
       vim.fn.clearmatches()
@@ -278,13 +289,35 @@ M.mark_clean = vim.schedule_wrap(function(left_win_id, center_win_id)
   highlights.set_modified_winsep(
     left_win_id,
     highlights.ns_id.left_window,
-    highlights.colors.base
+    highlights.colors.dark
   )
   highlights.set_modified_winsep(
     center_win_id,
     highlights.ns_id.center_window,
-    highlights.colors.base
+    highlights.colors.dark
   )
 end)
+
+function M.show_selection_mode_info()
+  local buf_id = vim.api.nvim_create_buf(false, true)
+  local text = "3 item(s) selected"
+  utils.set_buflines(buf_id, { text })
+  local win_width = vim.api.nvim_win_get_width(0)
+  local win_height = vim.api.nvim_win_get_height(0)
+
+  local ns = vim.api.nvim_create_namespace("TrekSelectionModeInfo")
+  vim.api.nvim_set_hl(ns, "CursorLine", { bg = highlights.colors.normal, fg = highlights.colors.text })
+  local win_id = vim.api.nvim_open_win(buf_id, false, {
+    relative = 'win',
+    width = #text + 4,
+    height = 1,
+    row = win_height,
+    col = win_width,
+    anchor = "SE",
+    border = "rounded",
+    win = M.window.center_win_id,
+  })
+  vim.api.nvim_win_set_hl_ns(win_id, ns)
+end
 
 return M

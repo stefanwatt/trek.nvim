@@ -5,6 +5,19 @@ local highlights = require("trek.highlights")
 local window = require("trek.window")
 local fs = require("trek.fs")
 
+---@class trek.Directory
+---@field path string
+---@field entries trek.DirectoryEntry[]
+
+---@class trek.DirectoryEntry
+---@field id integer
+---@field fs_type "file" | "directory"
+---@field name string
+---@field path string
+---@field icon string | nil
+---@field icon_hl_group string | nil
+---@field marked boolean
+
 ---@class trek.Explorer
 ---@field path string
 ---@field tab_id integer
@@ -13,12 +26,14 @@ local fs = require("trek.fs")
 ---@field cursor integer[]
 ---@field selected_entry trek.DirectoryEntry
 ---@field cursor_autocmd_id integer
----@field buf_dir_changed boolean
+---@field stop_listening_on_next_buf_change boolean
 ---@field dir trek.Directory
+---@field mode "normal" | "selection"
 local M = {
+  mode = "normal",
   dir = { path = "", entries = {} },
   opened = false,
-  buf_dir_changed = false,
+  stop_listening_on_next_buf_change = false,
   cursor_history = {},
 }
 
@@ -48,6 +63,7 @@ function M.open(path)
   M.track_cursor()
   window.store_cursor_pos(M.dir.path, M.window.center_win_id)
   M.setup_keymaps()
+  -- window.show_selection_mode_info()
 end
 
 function M.listen_for_center_buf_changes()
@@ -55,8 +71,8 @@ function M.listen_for_center_buf_changes()
     if not M.opened then
       return true
     end
-    if M.buf_dir_changed then
-      M.buf_dir_changed = false
+    if M.stop_listening_on_next_buf_change then
+      M.stop_listening_on_next_buf_change = false
       return true
     end
     window.mark_dirty(M.window.left_win_id, M.window.center_win_id)
@@ -99,7 +115,7 @@ function M.go_in()
     return
   end
   M.update_path(M.selected_entry.path)
-  M.buf_dir_changed = true
+  M.stop_listening_on_next_buf_change = true
   window.render_dirs(M.dir.path)
   M.selected_entry = M.update_selected_entry()
   assert(M.selected_entry ~= nil, "selected_entry cannot be nil after go in")
@@ -117,7 +133,7 @@ function M.go_out()
   local parent_entry_row = utils.find_index(M.dir.entries, function(entry)
     return entry.path == M.dir.path
   end)
-  M.buf_dir_changed = true
+  M.stop_listening_on_next_buf_change = true
   window.render_dirs(parent_path)
   M.selected_entry = M.update_selected_entry()
   assert(M.selected_entry ~= nil, "selected_entry cannot be nil after go out")
@@ -180,8 +196,26 @@ function M.update_dir(dir)
         return new_entry.path == entry.path
       end)
       M.dir.entries[i] = updated_entry ~= nil and updated_entry or entry
+      M.dir.entries[i].marked = entry.marked
     end
   end
+end
+
+function M.mark_entry()
+  local row = vim.api.nvim_win_get_cursor(M.window.center_win_id)[1]
+  local line = utils.get_bufline(M.window.center_buf_id, row)
+  local path_id = utils.match_line_path_id(line)
+  local entry_index = utils.find_index(M.dir.entries, function(entry)
+    return entry.id == path_id
+  end)
+  assert(entry_index ~= -1, "tried to select an entry that doesn't exist in M.dir.entries")
+  M.dir.entries[entry_index].marked = not M.dir.entries[entry_index].marked
+  M.stop_listening_on_next_buf_change = true
+  window.render_dir(M.dir, M.window.center_buf_id)
+  M.listen_for_center_buf_changes()
+  M.mode = utils.find_index(M.dir.entries, function(entry)
+    return entry.marked
+  end) ~= -1 and "selection" or "normal"
 end
 
 function M.setup_keymaps()
@@ -191,6 +225,7 @@ function M.setup_keymaps()
   vim.keymap.set("n", keymaps.go_in, M.go_in, opts)
   vim.keymap.set("n", keymaps.close, M.close, opts)
   vim.keymap.set("n", keymaps.synchronize, M.synchronize, opts)
+  vim.keymap.set("n", keymaps.mark_entry, M.mark_entry, opts)
 end
 
 return M
