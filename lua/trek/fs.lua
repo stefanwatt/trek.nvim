@@ -76,8 +76,16 @@ function M.get_dir_content(path)
   }
 end
 
+---@class trek.FsActions
+---@field create string[]
+---@field delete string[]
+---@field copy table[]
+---@field rename table[]
+---@field move table[]
+
 ---@param path string
 ---@param buf_id integer
+---@return trek.FsActions|nil
 function M.compute_fs_actions(path, buf_id)
   local dir = M.get_dir_content(path)
   local children_ids = utils.map(dir.entries, function(entry)

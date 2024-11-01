@@ -39,6 +39,7 @@ local M = {
 function M.open()
   ---@class trek.WindowData
   local window = get_default_window()
+  print('open window')
   vim.cmd("tabnew")
   window.left.win_id = vim.api.nvim_get_current_win()
   vim.cmd("vsplit")

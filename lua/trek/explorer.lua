@@ -29,12 +29,15 @@ local fs = require("trek.fs")
 ---@field stop_listening_on_next_buf_change boolean
 ---@field dir trek.Directory
 ---@field mode "normal" | "selection"
+---@field pending_fs_actions table<string, trek.FsActions>
+---@field cursor_history table<string, table<integer>>
 local M = {
   mode = "normal",
   dir = { path = "", entries = {} },
   opened = false,
   stop_listening_on_next_buf_change = false,
   cursor_history = {},
+  pending_fs_actions = {}
 }
 
 function M.teardown()
@@ -91,18 +94,34 @@ function M.close()
 end
 
 function M.synchronize()
-  --TODO: bug: when pasting files into a new directory preview doesnt work afther synch
   local fs_actions = fs.compute_fs_actions(M.dir.path, M.window.center.buf_id)
-  if fs_actions ~= nil then
-    fs.apply_fs_actions(fs_actions)
+  if fs_actions == nil then return end
+  for path, pending_fs_actions in pairs(M.pending_fs_actions) do
+    assert(
+      pending_fs_actions ~= nil
+      and pending_fs_actions.delete ~= nil and fs_actions.delete ~= nil
+      and pending_fs_actions.copy ~= nil and fs_actions.copy ~= nil
+      and pending_fs_actions.create ~= nil and fs_actions.create ~= nil
+      and pending_fs_actions.move ~= nil and fs_actions.move ~= nil
+      and pending_fs_actions.rename ~= nil and fs_actions.rename ~= nil,
+      "fsactions: shouldnt be possible for any of this to be nil"
+    )
+    if path ~= M.path then
+      fs_actions.delete = vim.tbl_deep_extend("force", fs_actions.delete, pending_fs_actions.delete)
+      fs_actions.copy = vim.tbl_deep_extend("force", fs_actions.copy, pending_fs_actions.copy)
+      fs_actions.create = vim.tbl_deep_extend("force", fs_actions.create, pending_fs_actions.create)
+      fs_actions.move = vim.tbl_deep_extend("force", fs_actions.move, pending_fs_actions.move)
+      fs_actions.rename = vim.tbl_deep_extend("force", fs_actions.rename, pending_fs_actions.rename)
+    end
   end
-
+  fs.apply_fs_actions(fs_actions)
   window.render_dirs(M.dir.path)
   M.dir = fs.get_dir_content(M.dir.path)
   window.mark_clean(M.window.left.win_id, M.window.center.win_id)
   M.selected_entry = window.update_selected_entry(M.dir.entries)
   assert(M.selected_entry ~= nil, "selected_entry cannot be nil after go synchronize")
   window.render_preview(M.selected_entry)
+  M.pending_fs_actions = {}
 end
 
 function M.go_in()
@@ -110,6 +129,7 @@ function M.go_in()
   if M.selected_entry.id == -1 then
     return
   end
+  M.pending_fs_actions[M.dir.path] = fs.compute_fs_actions(M.dir.path, M.window.center.buf_id)
   if M.selected_entry.fs_type == "file" then
     M.close()
     M.open_file(0, M.selected_entry.path)
@@ -131,6 +151,7 @@ function M.go_out()
   if parent_path == nil or parent_path == "/" then
     return
   end
+  M.pending_fs_actions[M.dir.path] = fs.compute_fs_actions(M.dir.path, M.window.center.buf_id)
   M.update_path(parent_path)
   local parent_entry_row = utils.find_index(M.dir.entries, function(entry)
     return entry.path == M.dir.path
@@ -240,7 +261,10 @@ end
 function M.enter_selection_mode()
   M.mode = "selection"
   local opts = { silent = true, buffer = M.window.center.buf_id }
-  vim.keymap.set("n", "y", M.yank_marked_entries, opts)
+  vim.keymap.set("n", "y", function()
+    M.yank_marked_entries()
+    M.exit_selection_mode()
+  end, opts)
   vim.keymap.set("n", "d", M.delete_marked_entries, opts)
 end
 
@@ -256,7 +280,6 @@ function M.yank_marked_entries()
   local yanked_text = table.concat(rows, "\n")
   vim.fn.setreg("0", yanked_text)
   vim.fn.setreg("+", yanked_text)
-  M.exit_selection_mode()
 end
 
 function M.delete_marked_entries()
@@ -284,7 +307,6 @@ function M.exit_selection_mode()
   end
   M.mode = "normal"
   local opts = { silent = true, buffer = M.window.center.buf_id }
-  --TODO: make sure this doesn't mess shit up with regular yank keymaps
   vim.keymap.del("n", "y", opts)
   vim.keymap.del("n", "d", opts)
   window.render_dir(M.dir, M.window.center.buf_id)
