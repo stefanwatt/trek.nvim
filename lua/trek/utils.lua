@@ -220,8 +220,10 @@ function M.match_line_offset(line)
   return line:match("^/.-/.-/()") or 1
 end
 
-M.get_bufline = function(buf_id, line)
-  return vim.api.nvim_buf_get_lines(buf_id, line - 1, line, false)[1]
+---@param buf_id integer
+---@param row integer
+M.get_bufline = function(buf_id, row)
+  return vim.api.nvim_buf_get_lines(buf_id, row - 1, row, false)[1]
 end
 
 ---@param event_name string

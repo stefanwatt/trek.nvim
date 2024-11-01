@@ -1,6 +1,7 @@
 local utils = require("trek.utils")
 local highlights = require("trek.highlights")
 
+local line_pattern = "^/%d+/.*%s/.*%w+$"
 local M = {
   events = {},
 }
@@ -12,15 +13,15 @@ function M.on_lines_changed(buf_id, cb)
   discarded_first = false
   vim.api.nvim_buf_attach(buf_id, false, {
     on_lines = function(
-      event,
-      buf_handle,
-      changedtick,
-      first_line,
-      last_line,
-      last_line_updated,
-      byte_count,
-      deleted_codepoints,
-      deleted_codeunits
+        event,
+        buf_handle,
+        changedtick,
+        first_line,
+        last_line,
+        last_line_updated,
+        byte_count,
+        deleted_codepoints,
+        deleted_codeunits
     )
       -- table.insert(M.events, { ... })
       if not discarded_first then
@@ -46,7 +47,7 @@ function M.buffer_update_file(buf_id, path)
   vim.loop.fs_close(fd)
   if not is_text then
     local user_config = require("trek.config").get_config()
-    utils.set_buflines(buf_id, { "-Non-text-file" .. string.rep("-", user_config.windows.width_preview) })
+    utils.set_buflines(buf_id, { "-Non-text-file-"})
     return
   end
 
@@ -70,6 +71,45 @@ function M.buffer_update_file(buf_id, path)
       vim.bo[buf_id].syntax = ft
     end
   end
+end
+
+---@param buf_id integer
+---@param row integer
+---@return boolean
+function M.does_line_match(buf_id, row)
+  local line = utils.get_bufline(buf_id, row)
+  return line:match(line_pattern) ~= nil
+end
+
+---@param buf_id integer
+---@param entries trek.DirectoryEntry[]
+---@return trek.DirectoryEntry[]
+function M.parse_entries(buf_id, entries)
+  local lines = vim.api.nvim_buf_get_lines(buf_id, 0, -1, false)
+  return utils.map(lines, function(line)
+    if line:match(line_pattern) == nil then
+      return M.get_default_entry()
+    end
+    local path_id = line:match("^/(%d+)/")
+    if path_id then
+      local mapped = utils.find(entries, function(entry)
+        return entry.id == tonumber(path_id)
+      end)
+      return mapped == nil and M.get_default_entry() or mapped
+    else
+      return M.get_default_entry()
+    end
+  end)
+end
+
+---@return trek.DirectoryEntry
+function M.get_default_entry()
+  return {
+    fs_type = "file",
+    id = -1,
+    name = "",
+    path = "",
+  }
 end
 
 return M

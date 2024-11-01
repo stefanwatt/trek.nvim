@@ -12,19 +12,28 @@ local fs = require("trek.fs")
 ---@field window trek.WindowData
 ---@field cursor integer[]
 local M = {
+  opened = false,
   cursor_history = {},
 }
 
 function M.teardown()
-  --TODO clean up everything
+  M.path = nil
+  M.tab_id = nil
+  M.window = nil
+  M.cursor = nil
+  M.opened = false
+  window.close()
 end
 
 ---@param path string
 function M.open(path)
   M.path = path
   M.window = window.open()
+  M.dir = fs.get_dir_content(path)
   buffer.on_lines_changed(M.window.center_buf_id, function(first_line, last_line)
+    if not M.opened then return true end
     window.mark_dirty(M.window.left_win_id, M.window.center_win_id)
+    M.dir.entries = buffer.parse_entries(M.window.center_buf_id, M.dir.entries)
   end)
   window.mark_clean(M.window.left_win_id, M.window.center_win_id)
   M.opened = true
@@ -39,8 +48,6 @@ function M.open(path)
 end
 
 function M.close()
-  M.opened = false
-  window.close()
   local current_tab_id = vim.api.nvim_get_current_tabpage()
   if current_tab_id ~= M.window.tab_id then
     return
@@ -57,6 +64,7 @@ function M.synchronize()
 
   window.render_dirs(M.path)
   M.update_selected_entry()
+  M.dir = fs.get_dir_content(M.path)
   window.mark_clean(M.window.left_win_id, M.window.center_win_id)
 end
 
@@ -128,8 +136,28 @@ function M.track_cursor()
 end
 
 function M.update_selected_entry()
-  M.selected_entry = window.update_selected_entry(M.path)
+  if not M.opened then
+    return nil
+  end
+  local dir = fs.get_dir_content(M.path)
+  assert(dir ~= nil, "dir nil")
+  M.update_dir(dir)
+  M.selected_entry = window.update_selected_entry(M.dir.entries)
   window.render_preview(M.selected_entry)
+end
+
+---@param dir trek.Directory
+function M.update_dir(dir)
+  assert(dir ~= nil, "dir nil")
+  assert(M.dir ~= nil, "M.dir nil")
+  for i, entry in ipairs(M.dir.entries) do
+    if entry.path ~= nil then
+      local updated_entry = utils.find(dir.entries, function(new_entry)
+        return new_entry.path == entry.path
+      end)
+      M.dir.entries[i] = updated_entry ~= nil and updated_entry or entry
+    end
+  end
 end
 
 function M.setup_keymaps()

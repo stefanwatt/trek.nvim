@@ -80,7 +80,6 @@ function M.set_cursor(win_id, row)
 end
 
 function M.reset_cursor(win_id, buf_id)
-  print("reset_cursor")
   local cursor = vim.api.nvim_win_get_cursor(win_id)
   local l = utils.get_bufline(buf_id, cursor[1])
   local cur_offset = utils.match_line_offset(l)
@@ -96,7 +95,6 @@ function M.tweak_cursor(win_id, buf_id)
   local cur_offset = utils.match_line_offset(l)
   if cursor[2] < (cur_offset - 1) then
     cursor[2] = cur_offset - 1
-    vim.print("setting cursor ", cursor)
     vim.api.nvim_win_set_cursor(win_id, cursor)
     -- Ensure icons are shown (may be not the case after horizontal scroll)
     vim.cmd("normal! 1000zh")
@@ -125,8 +123,10 @@ function M.render_preview(entry)
   if entry == nil then
     return
   end
+  if entry.id == -1 then
+    return utils.set_buflines(M.window.right_buf_id, { "-file-not-created-" })
+  end
   if entry.fs_type == "directory" then
-    vim.api.nvim_win_set_buf(M.window.right_win_id, M.window.right_buf_id)
     local dir = fs.get_dir_content(entry.path)
     M.render_dir(dir, M.window.right_buf_id)
   end
@@ -190,20 +190,14 @@ function M.render_dirs(path)
   vim.api.nvim_set_current_win(M.window.center_win_id)
 end
 
----@param path string
+---@param entries trek.DirectoryEntry[]
 ---@return trek.DirectoryEntry | nil
-function M.update_selected_entry(path)
-  if not M.opened then
-    return nil
-  end
-  local dir = fs.get_dir_content(path)
-  if dir == nil then
-    return nil
-  end
+function M.update_selected_entry(entries)
+  --TODO insert non synched entries
   --NOTE not sure if I like this, could be annoying in visual mode etc.
   M.reset_cursor(M.window.center_win_id, M.window.center_buf_id)
   local row = vim.api.nvim_win_get_cursor(M.window.center_win_id)[1]
-  return dir.entries[row]
+  return entries[row]
 end
 
 ---@param entry trek.DirectoryEntry

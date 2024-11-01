@@ -28,15 +28,15 @@ M.config = {
     synchronize = "=",
   },
 
-  -- General options
-  options = {
-    -- Whether to delete permanently or move into module-specific trash
-    -- permanent_delete = true,
-    -- -- Whether to use for editing directories
-    -- use_as_default_explorer = true,
-    -- -- Whether to be prompted for confirmation when performing filesystem actions
-    -- confirm_fs_actions = true,
+  -- Whether to delete permanently or move into module-specific trash
+  -- permanent_delete = true,
+  -- -- Whether to use for editing directories
+  -- use_as_default_explorer = true,
+  -- -- Whether to be prompted for confirmation when performing filesystem actions
+  windows = {
+    preview_width_percent = 50
   },
+  confirm_fs_actions = true,
 }
 
 M.default_config = vim.deepcopy(M.config)
