@@ -70,7 +70,8 @@ function M.close()
     return
   end
   M.teardown()
-  vim.cmd("tabc")
+  --TODO why does this say it's the last tab page
+  pcall(vim.cmd, "tabc")
 end
 
 function M.synchronize()
@@ -100,6 +101,7 @@ function M.go_in()
   M.update_path(M.selected_entry.path)
   M.buf_dir_changed = true
   window.render_dirs(M.path)
+  M.dir = fs.get_dir_content(M.path)
   M.selected_entry = M.update_selected_entry()
   assert(M.selected_entry ~= nil, "selected_entry cannot be nil after go in")
   window.mark_clean(M.window.left_win_id, M.window.center_win_id)
