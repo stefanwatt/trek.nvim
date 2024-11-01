@@ -11,8 +11,12 @@ local fs = require("trek.fs")
 ---@field opened boolean
 ---@field window trek.WindowData
 ---@field cursor integer[]
+---@field selected_entry trek.DirectoryEntry
+---@field cursor_autocmd_id integer
+---@field buf_dir_changed boolean
 local M = {
   opened = false,
+  buf_dir_changed = false,
   cursor_history = {},
 }
 
@@ -22,6 +26,8 @@ function M.teardown()
   M.window = nil
   M.cursor = nil
   M.opened = false
+  assert(M.cursor_autocmd_id ~= nil, "tried to delete cursor tracking autocmd, but id was nil")
+  vim.api.nvim_del_autocmd(M.cursor_autocmd_id)
   window.close()
 end
 
@@ -29,12 +35,9 @@ end
 function M.open(path)
   M.path = path
   M.window = window.open()
+  --TODO can get rid of M.path and just use M.dir.path
   M.dir = fs.get_dir_content(path)
-  buffer.on_lines_changed(M.window.center_buf_id, function(first_line, last_line)
-    if not M.opened then return true end
-    window.mark_dirty(M.window.left_win_id, M.window.center_win_id)
-    M.dir.entries = buffer.parse_entries(M.window.center_buf_id, M.dir.entries)
-  end)
+  M.listen_for_center_buf_changes()
   window.mark_clean(M.window.left_win_id, M.window.center_win_id)
   M.opened = true
   window.resize_windows(M.window.left_win_id, M.window.center_win_id, M.window.right_win_id)
@@ -45,6 +48,20 @@ function M.open(path)
   M.track_cursor()
   window.store_cursor_pos(M.path, M.window.center_win_id)
   M.setup_keymaps()
+end
+
+function M.listen_for_center_buf_changes()
+  buffer.on_lines_changed(M.window.center_buf_id, function(first_line, last_line)
+    if not M.opened then
+      return true
+    end
+    if M.buf_dir_changed then
+      M.buf_dir_changed = false
+      return true
+    end
+    window.mark_dirty(M.window.left_win_id, M.window.center_win_id)
+    M.dir.entries = buffer.parse_entries(M.window.center_buf_id, M.dir.entries)
+  end)
 end
 
 function M.close()
@@ -63,14 +80,15 @@ function M.synchronize()
   end
 
   window.render_dirs(M.path)
-  M.update_selected_entry()
+  M.selected_entry = M.update_selected_entry()
+  assert(M.selected_entry ~= nil, "selected_entry cannot be nil after go synchronize")
   M.dir = fs.get_dir_content(M.path)
   window.mark_clean(M.window.left_win_id, M.window.center_win_id)
 end
 
 function M.go_in()
-  --TODO validate selected_entry
-  if M.selected_entry == nil then
+  assert(M.selected_entry ~= nil, "selected_entry is nil")
+  if M.selected_entry.id == -1 then
     return
   end
   if M.selected_entry.fs_type == "file" then
@@ -80,32 +98,35 @@ function M.go_in()
     return
   end
   M.update_path(M.selected_entry.path)
+  M.buf_dir_changed = true
   window.render_dirs(M.path)
-  M.update_selected_entry()
+  M.selected_entry = M.update_selected_entry()
+  assert(M.selected_entry ~= nil, "selected_entry cannot be nil after go in")
   window.mark_clean(M.window.left_win_id, M.window.center_win_id)
   window.restore_cursor_pos(M.path, M.window.center_win_id)
+  M.listen_for_center_buf_changes()
 end
 
 function M.go_out()
   local parent_path = fs.get_parent(M.path)
-  if parent_path == nil then
+  if parent_path == nil or parent_path == "/" then
     return
   end
-  local dir = fs.get_dir_content(parent_path)
-  local parent_entry_row = utils.find_index(dir.entries, function(entry)
+  M.dir = fs.get_dir_content(parent_path)
+  local parent_entry_row = utils.find_index(M.dir.entries, function(entry)
     return entry.path == M.path
   end)
   M.update_path(parent_path)
+  M.buf_dir_changed = true
   window.render_dirs(parent_path)
-  M.update_selected_entry()
+  M.selected_entry = M.update_selected_entry()
+  assert(M.selected_entry ~= nil, "selected_entry cannot be nil after go out")
   window.mark_clean(M.window.left_win_id, M.window.center_win_id)
-  -- window.restore_cursor_pos(M.path, M.window.center_win_id)
+  M.listen_for_center_buf_changes()
   if parent_entry_row == -1 then
     return
   end
-  vim.schedule(function()
-    window.set_cursor(M.window.center_win_id, parent_entry_row)
-  end)
+  window.set_cursor(M.window.center_win_id, parent_entry_row)
 end
 
 ---@param path string
@@ -122,12 +143,16 @@ function M.open_file(win_id, path)
 end
 
 function M.track_cursor()
-  vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
+  --TODO delete autocmd in teardown
+  M.cursor_autocmd_id = vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI" }, {
     group = utils.augroup("trek.Cursor"),
     callback = function()
       local updated_cursor = vim.api.nvim_win_get_cursor(M.window.center_win_id)
       if M.cursor ~= nil and M.cursor[1] ~= updated_cursor[1] then
-        M.update_selected_entry()
+        local selected_entry = M.update_selected_entry()
+        if selected_entry ~= nil then
+          M.selected_entry = selected_entry
+        end
       end
       M.cursor = window.tweak_cursor(M.window.center_win_id, M.window.center_buf_id)
     end,
@@ -135,15 +160,15 @@ function M.track_cursor()
   })
 end
 
+---@return trek.DirectoryEntry
 function M.update_selected_entry()
-  if not M.opened then
-    return nil
-  end
+  assert(M.opened, "explorer not open")
   local dir = fs.get_dir_content(M.path)
   assert(dir ~= nil, "dir nil")
   M.update_dir(dir)
-  M.selected_entry = window.update_selected_entry(M.dir.entries)
-  window.render_preview(M.selected_entry)
+  local selected_entry = window.update_selected_entry(M.dir.entries)
+  window.render_preview(selected_entry)
+  return selected_entry
 end
 
 ---@param dir trek.Directory

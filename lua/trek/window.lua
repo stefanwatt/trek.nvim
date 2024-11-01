@@ -191,9 +191,8 @@ function M.render_dirs(path)
 end
 
 ---@param entries trek.DirectoryEntry[]
----@return trek.DirectoryEntry | nil
+---@return trek.DirectoryEntry
 function M.update_selected_entry(entries)
-  --TODO insert non synched entries
   --NOTE not sure if I like this, could be annoying in visual mode etc.
   M.reset_cursor(M.window.center_win_id, M.window.center_buf_id)
   local row = vim.api.nvim_win_get_cursor(M.window.center_win_id)[1]
