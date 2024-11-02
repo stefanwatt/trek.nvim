@@ -30,6 +30,11 @@
 - **Miller Column Navigation**: I loved this as soon as I first tried it
 - **Static Layout**: I prefer a static, 3-column, full-height layout like in ranger
 - **LSP Integration**: Took lsp renaming functionality from [oil.nvim](https://github.com/stevearc/oil.nvim) and integrated it
+- **Selection Mode**: Select files and perform batch operations
+
+
+![trek-selection-mode](https://github.com/user-attachments/assets/49d008d5-8727-4f03-b5da-5737c7fb30de)
+
 
 ---
 
@@ -48,6 +53,7 @@ Below is the default configuration for `trek.nvim`:
     go_in = "<Right>",
     go_out = "<Left>",
     synchronize = "=",
+    mark_entry = "<Tab>",
   },
 }
 ```
@@ -74,6 +80,7 @@ The `open` function for `trek.nvim` can be used to open the directory of any giv
 - **Go into directory**: `<Right>`
 - **Go out of directory**: `<Left>`
 - **Synchronize view**: `=`
+- **Mark entry**: `<Tab>`
 
 ---
 
@@ -106,6 +113,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
         go_in = "<Right>",
         go_out = "<Left>",
         synchronize = "=",
+        mark_entry = "<Tab>",
       }
     });
   end
