@@ -33,7 +33,7 @@
 - **Selection Mode**: Select files and perform batch operations
 
 
-![trek-selection-mode](https://github.com/user-attachments/assets/49d008d5-8727-4f03-b5da-5737c7fb30de)
+![trek-selection-mode](https://github.com/user-attachments/assets/33df5b16-fa2f-44e8-bb19-b9e5bbb0d7dd)
 
 
 ---
