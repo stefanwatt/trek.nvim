@@ -313,8 +313,6 @@ function M.did_rename_files(files)
           }
         end, matching_files),
       }
-      print("about to notify lsp about didRenameFiles")
-      vim.print(params)
       ---@diagnostic disable-next-line: invisible
       client.notify(ms.workspace_didRenameFiles, params)
     end

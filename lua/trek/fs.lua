@@ -35,18 +35,6 @@ local lsp_helpers = require("trek.lsp.helpers")
 ---@field url string
 ---@field column string
 ---@field value any
----
----@class trek.Directory
----@field path string
----@field entries trek.DirectoryEntry[]
-
----@class trek.DirectoryEntry
----@field id integer
----@field fs_type "file" | "directory"
----@field name string
----@field path string
----@field icon string | nil
----@field icon_hl_group string | nil
 
 ---@class trek.Filesystem
 ---@field directory trek.Directory
@@ -88,10 +76,17 @@ function M.get_dir_content(path)
   }
 end
 
+---@class trek.FsActions
+---@field create string[]
+---@field delete string[]
+---@field copy table[]
+---@field rename table[]
+---@field move table[]
+
 ---@param path string
 ---@param buf_id integer
+---@return trek.FsActions|nil
 function M.compute_fs_actions(path, buf_id)
-  -- Compute differences
   local dir = M.get_dir_content(path)
   local children_ids = utils.map(dir.entries, function(entry)
     return entry.id
@@ -296,7 +291,7 @@ function M.move(from, to)
   -- restores previous concealed path index)
   M.replace_path_in_index(from, to)
 
-  -- TODO Rename in loaded buffers
+  -- TODO: Rename in loaded buffers
   -- for _, buf_id in ipairs(vim.api.nvim_list_bufs()) do
   --   M.event_listeners.rename_loaded_buffer(buf_id, from, to)
   -- end
@@ -431,13 +426,14 @@ end
 function M.get_directory_of_path(path)
   local full_path = M.full_path(path)
   local stat = vim.loop.fs_stat(full_path)
-
+  assert(stat ~= nil, "not a valid path")
   if stat and stat.type == "directory" then
     return full_path
   else
     return M.get_parent(full_path) or ""
   end
 end
+
 ---@param path string
 ---@return string | nil
 function M.get_parent(path)
@@ -468,6 +464,7 @@ function M.get_type(path)
   end
   return vim.fn.isdirectory(path) == 1 and "directory" or "file"
 end
+
 function M.warn_existing_path(path, action)
   utils.notify(string.format("Can not %s %s. Target path already exists.", action, path), "WARN")
   return false

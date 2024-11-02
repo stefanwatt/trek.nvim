@@ -10,6 +10,7 @@ local discarded_first = false
 ---@param buf_id integer
 ---@param cb function()
 function M.on_lines_changed(buf_id, cb)
+  --TODO: it's annoying that this also triggers when i call buf_set_lines
   discarded_first = false
   vim.api.nvim_buf_attach(buf_id, false, {
     on_lines = function(
@@ -23,7 +24,6 @@ function M.on_lines_changed(buf_id, cb)
         deleted_codepoints,
         deleted_codeunits
     )
-      -- table.insert(M.events, { ... })
       if not discarded_first then
         discarded_first = true
       else
@@ -47,7 +47,7 @@ function M.buffer_update_file(buf_id, path)
   vim.loop.fs_close(fd)
   if not is_text then
     local user_config = require("trek.config").get_config()
-    utils.set_buflines(buf_id, { "-Non-text-file-"})
+    utils.set_buflines(buf_id, { "-Non-text-file-" })
     return
   end
 

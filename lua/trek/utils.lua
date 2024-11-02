@@ -16,6 +16,20 @@ end
 
 ---@generic T
 ---@param list T[]
+---@param predicate function(value: T): boolean
+---@return T[]
+function M.filter(list, predicate)
+  local result = {}
+  for _, value in ipairs(list) do
+    if predicate(value) then
+      table.insert(result, value)
+    end
+  end
+  return result
+end
+
+---@generic T
+---@param list T[]
 ---@param cb function(value: `T`): boolean
 ---@return T | nil
 function M.find(list, cb)
@@ -66,7 +80,7 @@ end
 ---@param scheme nil|string
 ---@return nil|trek.Adapter
 function M.get_adapter_by_scheme(scheme)
-  ---TODO: implement, but we dont need it to be as complex as in oil
+  ---TODO:: implement, but we dont need it to be as complex as in oil
   ---seems like in the lsp stuff it's only used for the name property
   return { name = "files" }
 end
