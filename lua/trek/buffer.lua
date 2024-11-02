@@ -24,7 +24,6 @@ function M.on_lines_changed(buf_id, cb)
         deleted_codepoints,
         deleted_codeunits
     )
-      -- table.insert(M.events, { ... })
       if not discarded_first then
         discarded_first = true
       else

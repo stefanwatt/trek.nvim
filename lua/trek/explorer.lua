@@ -318,22 +318,39 @@ function M.exit_selection_mode()
   end
   M.mode = "normal"
   local opts = { silent = true, buffer = M.window.center.buf_id }
-  vim.keymap.del("n", "q", opts)
-  vim.keymap.del("n", "<Esc>", opts)
-  vim.keymap.del("n", "y", opts)
-  vim.keymap.del("n", "d", opts)
+  local keymaps = config.get_config().keymaps
+  local selection_mode_keymaps = { "q", "<Esc>", "y", "d" }
+  local user_keymaps = M.get_user_keymaps()
+  for _, keymap in ipairs(selection_mode_keymaps) do
+    vim.keymap.del("n", keymap, opts)
+    for lhs, rhs in pairs(user_keymaps) do
+      if lhs == keymap then
+        vim.keymap.set("n", lhs, rhs, opts)
+      end
+    end
+  end
   window.render_dir(M.dir, M.window.center.buf_id)
+end
+
+---@return table<string, string|function>
+function M.get_user_keymaps()
+  local config_keymaps = config.get_config().keymaps
+  return {
+    [config_keymaps.go_out] = M.go_out,
+    [config_keymaps.go_in] = M.go_in,
+    [config_keymaps.close] = M.close,
+    [config_keymaps.synchronize] = M.synchronize,
+    [config_keymaps.toggle_entry_marked] = M.toggle_entry_marked,
+    p = "o<Esc>p",
+  }
 end
 
 function M.setup_keymaps()
   local opts = { silent = true, buffer = M.window.center.buf_id }
-  local keymaps = config.get_config().keymaps
-  vim.keymap.set("n", "p", "o<Esc>p", opts)
-  vim.keymap.set("n", keymaps.go_out, M.go_out, opts)
-  vim.keymap.set("n", keymaps.go_in, M.go_in, opts)
-  vim.keymap.set("n", keymaps.close, M.close, opts)
-  vim.keymap.set("n", keymaps.synchronize, M.synchronize, opts)
-  vim.keymap.set("n", keymaps.toggle_entry_marked, M.toggle_entry_marked, opts)
+  local keymaps = M.get_user_keymaps()
+  for lhs, rhs in pairs(keymaps) do
+    vim.keymap.set("n", lhs, rhs, opts)
+  end
 end
 
 return M

@@ -54,8 +54,7 @@ function M.add_highlights(buf_id, entries)
     local icon_start, name_start = line:match("^/%d+/().-()/")
     icon_start = icon_start - 1
     if is_selection_mode then
-      set_hl(i - 1, icon_start,
-        { hl_group = "WarningMsg", end_col = icon_start + 1, right_gravity = false })
+      set_hl(i - 1, icon_start, { hl_group = "WarningMsg", end_col = icon_start + 1, right_gravity = false })
       icon_start = icon_start + 1
     end
     if entry.icon_hl_group ~= nil then
