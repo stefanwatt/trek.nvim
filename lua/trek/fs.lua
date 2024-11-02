@@ -470,4 +470,24 @@ function M.warn_existing_path(path, action)
   return false
 end
 
+---@param buf_id integer
+---@param cb function
+function M.track_dir_edit(buf_id, cb)
+  if vim.api.nvim_get_current_buf() ~= buf_id then return end
+  if vim.b.minifiles_processed_dir then
+    -- Smartly delete directory buffer if already visited
+    local alt_buf = vim.fn.bufnr('#')
+    if alt_buf ~= buf_id and vim.fn.buflisted(alt_buf) == 1 then vim.api.nvim_win_set_buf(0, alt_buf) end
+    return vim.api.nvim_buf_delete(buf_id, { force = true })
+  end
+
+  local path = vim.api.nvim_buf_get_name(0)
+  if vim.fn.isdirectory(path) ~= 1 then return end
+
+  -- Make directory buffer disappear when it is not needed
+  vim.bo.bufhidden = 'wipe'
+  vim.b.minifiles_processed_dir = true
+  vim.schedule(function() cb(path) end)
+end
+
 return M

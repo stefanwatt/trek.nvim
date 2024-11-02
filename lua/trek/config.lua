@@ -26,25 +26,27 @@ M.config = {
     synchronize = "=",
     toggle_entry_marked = "<Tab>",
   },
-  --TODO: use_as_default_explorer = true,
   windows = {
     preview_width_percent = 50,
   },
+  use_as_default_explorer = true,
   confirm_fs_actions = false,
   permanent_delete = true,
 }
 
 M.default_config = vim.deepcopy(M.config)
 
-function M.setup_config(config)
-  -- General idea: if some table elements are not present in user-supplied
-  -- `config`, take them from default config
+function M.validate_config(config)
   vim.validate({ config = { config, "table", true } })
   config = vim.tbl_deep_extend("force", vim.deepcopy(M.default_config), config or {})
 
   vim.validate({
-    mappings = { config.keymaps, "table" },
-    options = { config.options, "table" },
+    keymaps = { config.keymaps, "table" },
+    lsp = { config.lsp, "table" },
+    windows = { config.windows, "table" },
+    use_as_default_explorer = { config.use_as_default_explorer, "boolean" },
+    confirm_fs_actions = { config.confirm_fs_actions, "boolean" },
+    permanent_delete = { config.permanent_delete, "boolean" },
   })
 
   vim.validate({
@@ -53,9 +55,9 @@ function M.setup_config(config)
     ["keymaps.go_out"] = { config.keymaps.go_out, "string" },
     ["keymaps.synchronize"] = { config.keymaps.synchronize, "string" },
     ["keymaps.toggle_entry_marked"] = { config.keymaps.toggle_entry_marked, "string" },
-
-    -- ["options.use_as_default_explorer"] = { config.options.use_as_default_explorer, "boolean" },
-    -- ["options.permanent_delete"] = { config.options.permanent_delete, "boolean" },
+    ["windows.preview_width_percent"] = { config.windows.preview_width_percent, "number" },
+    ["lsp.timeout_ms"] = { config.lsp.timeout_ms, "number" },
+    ["lsp.autosave_changes"] = { config.lsp.autosave_changes, "boolean" },
   })
 
   return config

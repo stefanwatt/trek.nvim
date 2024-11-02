@@ -49,6 +49,9 @@ function M.open()
   window.left.buf_id = vim.api.nvim_create_buf(false, true)
   window.center.buf_id = vim.api.nvim_create_buf(false, true)
   window.right.buf_id = vim.api.nvim_create_buf(false, true)
+  vim.bo[window.left.buf_id].buftype = 'nofile'
+  vim.bo[window.center.buf_id].buftype = 'nofile'
+  vim.bo[window.right.buf_id].buftype = 'nofile'
   vim.api.nvim_win_set_buf(window.left.win_id, window.left.buf_id)
   vim.api.nvim_win_set_buf(window.center.win_id, window.center.buf_id)
   vim.api.nvim_win_set_buf(window.right.win_id, window.right.buf_id)
@@ -283,16 +286,16 @@ end
 ---@param left_win_id integer
 ---@param center_win_id integer
 M.mark_dirty = vim.schedule_wrap(function(left_win_id, center_win_id)
-  highlights.set_modified_winsep(
-    left_win_id,
-    highlights.ns_id.left_window,
-    highlights.colors.warning
-  )
-  highlights.set_modified_winsep(
-    center_win_id,
-    highlights.ns_id.center_window,
-    highlights.colors.warning
-  )
+  -- highlights.set_modified_winsep(
+  --   left_win_id,
+  --   highlights.ns_id.left_window,
+  --   highlights.colors.warning
+  -- )
+  -- highlights.set_modified_winsep(
+  --   center_win_id,
+  --   highlights.ns_id.center_window,
+  --   highlights.colors.warning
+  -- )
 end)
 
 ---@param left_win_id integer
@@ -320,6 +323,7 @@ end
 ---@param text string
 function M.create_selection_mode_info_win(text)
   M.window.selection_mode_info.buf_id = vim.api.nvim_create_buf(false, true)
+  vim.bo[M.window.selection_mode_info.buf_id].buftype = 'nofile'
   local win_width = vim.api.nvim_win_get_width(M.window.center.win_id)
   local win_height = vim.api.nvim_win_get_height(M.window.center.win_id)
 
