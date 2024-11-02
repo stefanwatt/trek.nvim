@@ -19,7 +19,7 @@
     </a>
    </div>
 
-**trek.nvim** is basically [mini.files](https://github.com/echasnovski/mini.files) with a different UI and some other changes.
+**trek.nvim** is a neovim file explorer allowing you to manipulate the filesystem with a text based interface. Use all your muscle memory.
 
 ![image](https://github.com/user-attachments/assets/29dbc53e-42c6-4337-b62c-ad5aec9d9822)
 
