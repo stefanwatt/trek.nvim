@@ -21,7 +21,8 @@
 
 **trek.nvim** is a neovim file explorer allowing you to manipulate the filesystem with a text based interface. Use all your muscle memory.
 
-![image](https://github.com/user-attachments/assets/29dbc53e-42c6-4337-b62c-ad5aec9d9822)
+![image](https://github.com/user-attachments/assets/b9a4a8ad-21cc-454d-9fee-587e89a98af6)
+
 
 ---
 
