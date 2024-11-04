@@ -56,17 +56,18 @@ function M.open(path)
   M.window = window.open()
   M.dir = fs.get_dir_content(path)
   M.listen_for_center_buf_changes()
-  window.mark_clean(M.window.left.win_id, M.window.center.win_id)
+  window.mark_clean()
   M.opened = true
   window.resize_windows(M.window.left.win_id, M.window.center.win_id, M.window.right.win_id)
-  window.render_dirs(path)
+  window.render_dirs(M.dir)
   for _, win_id in ipairs({ M.window.left.win_id, M.window.center.win_id, M.window.right.win_id }) do
     window.set_window_opts(win_id)
   end
   M.track_cursor()
+  M.update_selected_entry()
+  window.render_preview(M.selected_entry)
   window.store_cursor_pos(M.dir.path, M.window.center.win_id)
   M.setup_keymaps()
-  -- window.show_selection_mode_info()
 end
 
 function M.listen_for_center_buf_changes()
@@ -78,7 +79,7 @@ function M.listen_for_center_buf_changes()
       M.stop_listening_on_next_buf_change = false
       return true
     end
-    window.mark_dirty(M.window.left.win_id, M.window.center.win_id)
+    window.mark_dirty()
     M.dir.entries = buffer.parse_entries(M.window.center.buf_id, M.dir.entries)
   end)
 end
@@ -96,6 +97,11 @@ end
 function M.synchronize()
   local fs_actions = fs.compute_fs_actions(M.dir.path, M.window.center.buf_id)
   if fs_actions == nil then
+    M.dir.entries = utils.filter(M.dir.entries, function(entry)
+      return entry.id ~= -1
+    end)
+    window.render_current_dir(M.dir)
+    window.mark_clean()
     return
   end
   for path, pending_fs_actions in pairs(M.pending_fs_actions) do
@@ -122,12 +128,12 @@ function M.synchronize()
     end
   end
   fs.apply_fs_actions(fs_actions)
-  window.render_dirs(M.dir.path)
   M.dir = fs.get_dir_content(M.dir.path)
-  window.mark_clean(M.window.left.win_id, M.window.center.win_id)
+  window.render_dirs(M.dir)
   M.selected_entry = window.update_selected_entry(M.dir.entries)
   assert(M.selected_entry ~= nil, "selected_entry cannot be nil after go synchronize")
   window.render_preview(M.selected_entry)
+  window.mark_clean()
   M.pending_fs_actions = {}
 end
 
@@ -145,10 +151,10 @@ function M.go_in()
   end
   M.update_path(M.selected_entry.path)
   M.stop_listening_on_next_buf_change = true
-  window.render_dirs(M.dir.path)
+  window.render_dirs(M.dir)
   M.selected_entry = M.update_selected_entry()
   assert(M.selected_entry ~= nil, "selected_entry cannot be nil after go in")
-  window.mark_clean(M.window.left.win_id, M.window.center.win_id)
+  window.mark_clean()
   window.restore_cursor_pos(M.dir.path, M.window.center.win_id)
   M.listen_for_center_buf_changes()
 end
@@ -164,10 +170,10 @@ function M.go_out()
     return entry.path == M.dir.path
   end)
   M.stop_listening_on_next_buf_change = true
-  window.render_dirs(parent_path)
+  window.render_dirs(M.dir)
   M.selected_entry = M.update_selected_entry()
   assert(M.selected_entry ~= nil, "selected_entry cannot be nil after go out")
-  window.mark_clean(M.window.left.win_id, M.window.center.win_id)
+  window.mark_clean()
   M.listen_for_center_buf_changes()
   if parent_entry_row == -1 then
     return
@@ -241,7 +247,8 @@ function M.toggle_entry_marked()
   assert(entry_index ~= -1, "tried to select an entry that doesn't exist in M.dir.entries")
   M.dir.entries[entry_index].marked = not M.dir.entries[entry_index].marked
   M.stop_listening_on_next_buf_change = true
-  window.render_dir(M.dir, M.window.center.buf_id)
+  window.render_current_dir(M.dir)
+  window.mark_clean()
   M.listen_for_center_buf_changes()
   local marked_entries = M.get_marked_entries()
   if #marked_entries > 1 then
@@ -329,7 +336,11 @@ function M.exit_selection_mode()
       end
     end
   end
-  window.render_dir(M.dir, M.window.center.buf_id)
+  local modified = window.winbar.modified
+  window.render_current_dir(M.dir)
+  if not modified then
+    window.mark_clean()
+  end
 end
 
 ---@return table<string, string|function>

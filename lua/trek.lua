@@ -31,7 +31,6 @@ end
 M.open = function(path)
   assert(path ~= nil and type(path) == "string", "path is not a string")
   local dir_path = fs.get_directory_of_path(path)
-  window.opened_from_path = path
   explorer.open(dir_path)
 end
 

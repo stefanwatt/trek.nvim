@@ -4,6 +4,7 @@ local M = {
     highlight = vim.api.nvim_create_namespace("TrekHighlight"),
     left_window = vim.api.nvim_create_namespace("TrekLeftWindow"),
     center_window = vim.api.nvim_create_namespace("TrekCenterWindow"),
+    right_window = vim.api.nvim_create_namespace("TrekRightWindow"),
   },
   colors = {
     info = vim.fn.synIDattr(vim.fn.hlID("Directory"), "fg#"),
@@ -29,8 +30,15 @@ end
 
 ---@param win_id integer
 ---@param ns integer
-function M.set_cursorline(win_id, ns)
-  vim.api.nvim_set_hl(ns, "CursorLine", { bg = M.colors.info, fg = M.colors.dark })
+function M.set_winbar(win_id, ns)
+  vim.api.nvim_set_hl(ns, "WinBar", { bg = M.colors.info, fg = M.colors.dark, bold = true })
+  vim.api.nvim_win_set_hl_ns(win_id, ns)
+end
+
+---@param win_id integer
+---@param ns integer
+function M.set_winbar_modified(win_id, ns)
+  vim.api.nvim_set_hl(ns, "WinBar", { bg = M.colors.warning, fg = M.colors.dark })
   vim.api.nvim_win_set_hl_ns(win_id, ns)
 end
 
@@ -52,6 +60,7 @@ function M.add_highlights(buf_id, entries)
     local hl_group = entry.fs_type == "file" and "MiniFilesFile" or "MiniFilesDirectory"
     local line = lines[i]
     local icon_start, name_start = line:match("^/%d+/().-()/")
+    assert(icon_start ~= nil, "tried to apply highlights to malformed entry")
     icon_start = icon_start - 1
     if is_selection_mode then
       set_hl(i - 1, icon_start, { hl_group = "WarningMsg", end_col = icon_start + 1, right_gravity = false })
@@ -69,7 +78,7 @@ end
 ---@param win_id integer
 ---@param ns integer
 ---@param color string
-function M.set_modified_winsep(win_id, ns, color)
+function M.set_winseparator(win_id, ns, color)
   vim.wo[win_id].fillchars = "vert:┃,horiz:━,horizup:┻,horizdown:┳,vertleft:┫,vertright:┣,verthoriz:╋"
   vim.api.nvim_win_set_hl_ns(win_id, ns)
   vim.api.nvim_set_hl(M.ns_id.center_window, "WinSeparator", { fg = color })

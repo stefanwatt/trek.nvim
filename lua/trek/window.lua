@@ -3,9 +3,6 @@ local highlights = require("trek.highlights")
 local buffer = require("trek.buffer")
 local utils = require("trek.utils")
 
-local icon_checked = ""
-local icon_not_checked = ""
-
 local function get_default_window()
   return {
     left = { win_id = nil, buf_id = nil },
@@ -17,13 +14,43 @@ end
 
 ---@class trek.Window
 ---@field window trek.WindowData
----@field opened_from_path string
----TODO: this seems sketchy
 local M = {
   cursor_history = {},
   opened = false,
-  window = get_default_window()
+  window = get_default_window(),
+  winbar = {
+    modified = false,
+    windows = {},
+  },
 }
+
+local icon_checked = ""
+local icon_modified = "󰏫"
+local icon_not_checked = ""
+
+---@param dir trek.Directory
+---@param win_id integer
+---@param buf_id integer
+local function render_dir(dir, win_id, buf_id)
+  local is_selection_mode = utils.find_index(dir.entries, function(entry)
+    return entry.marked
+  end) ~= -1
+  local lines = utils.map(
+    dir.entries,
+    ---@param entry trek.DirectoryEntry
+    function(entry)
+      local icon = M.get_icon(entry)
+      local checkbox = ""
+      if is_selection_mode then
+        checkbox = entry.marked and icon_checked or icon_not_checked
+        checkbox = checkbox .. "  "
+      end
+      return "/" .. entry.id .. "/" .. checkbox .. icon .. " /" .. entry.name
+    end
+  )
+  vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, lines)
+  highlights.add_highlights(buf_id, dir.entries)
+end
 
 ---@class trek.WindowPane
 ---@field win_id integer | nil
@@ -39,7 +66,6 @@ local M = {
 function M.open()
   ---@class trek.WindowData
   local window = get_default_window()
-  print('open window')
   vim.cmd("tabnew")
   window.left.win_id = vim.api.nvim_get_current_win()
   vim.cmd("vsplit")
@@ -49,15 +75,18 @@ function M.open()
   window.left.buf_id = vim.api.nvim_create_buf(false, true)
   window.center.buf_id = vim.api.nvim_create_buf(false, true)
   window.right.buf_id = vim.api.nvim_create_buf(false, true)
-  vim.bo[window.left.buf_id].buftype = 'nofile'
-  vim.bo[window.center.buf_id].buftype = 'nofile'
-  vim.bo[window.right.buf_id].buftype = 'nofile'
+  vim.bo[window.left.buf_id].buftype = "nofile"
+  vim.bo[window.center.buf_id].buftype = "nofile"
+  vim.bo[window.right.buf_id].buftype = "nofile"
   vim.api.nvim_win_set_buf(window.left.win_id, window.left.buf_id)
   vim.api.nvim_win_set_buf(window.center.win_id, window.center.buf_id)
   vim.api.nvim_win_set_buf(window.right.win_id, window.right.buf_id)
   vim.api.nvim_buf_set_name(window.center.buf_id, "Trek File Explorer")
-  highlights.set_cursorline(window.left.win_id, highlights.ns_id.left_window)
-  highlights.set_cursorline(window.center.win_id, highlights.ns_id.center_window)
+  highlights.set_winbar(window.left.win_id, highlights.ns_id.left_window)
+  highlights.set_winbar(window.center.win_id, highlights.ns_id.center_window)
+  highlights.set_winbar(window.right.win_id, highlights.ns_id.right_window)
+  highlights.set_winseparator(window.left.win_id, highlights.ns_id.left_window, highlights.colors.dark)
+  highlights.set_winseparator(window.center.win_id, highlights.ns_id.center_window, highlights.colors.dark)
   window.tab_id = vim.api.nvim_get_current_tabpage()
   M.window = window
   M.opened = true
@@ -148,72 +177,48 @@ function M.render_preview(entry)
   end
   if entry.fs_type == "directory" then
     local dir = fs.get_dir_content(entry.path)
-    M.render_dir(dir, M.window.right.buf_id)
+    render_dir(dir, M.window.right.win_id, M.window.right.buf_id)
   end
   if entry.fs_type == "file" then
     buffer.buffer_update_file(M.window.right.buf_id, entry.path)
   end
+  M.set_winbar(M.window.right.win_id, fs.get_basename(entry.path))
 end
 
+---@param win_id integer
 ---@param path string
-function M.render_current_dir(path)
-  local dir = fs.get_dir_content(path)
-  local entry_row = -1
-  if M.opened_from_path ~= nil then
-    entry_row = utils.find_index(dir.entries, function(entry)
-      return entry.path == M.opened_from_path
-    end)
-  end
-  M.render_dir(dir, M.window.center.buf_id)
-  if entry_row ~= -1 then
-    vim.schedule(function()
-      M.set_cursor(M.window.center.win_id, entry_row)
-    end)
-  end
+function M.set_winbar(win_id, content)
+  M.winbar.windows[win_id] = content
+  local icon = (M.window.center.win_id == win_id and M.winbar.modified) and icon_modified .. " " or ""
+  vim.wo[win_id].winbar = "  " .. content .. " " .. icon
+end
+
+---@param dir trek.Directory
+function M.render_current_dir(dir)
+  render_dir(dir, M.window.center.win_id, M.window.center.buf_id)
+  M.set_winbar(M.window.center.win_id, fs.get_basename(dir.path))
 end
 
 ---@param parent_path string
----@param path string
-function M.render_parent_dir(parent_path, path)
-  local dir = fs.get_dir_content(parent_path)
-  local parent_entry_row = utils.find_index(dir.entries, function(entry)
-    return entry.path == path
+---@param dir trek.Directory
+function M.render_parent_dir(parent_path, dir)
+  local parent_dir = fs.get_dir_content(parent_path)
+  local parent_entry_row = utils.find_index(parent_dir.entries, function(entry)
+    return entry.path == dir.path
   end)
-  M.render_dir(dir, M.window.left.buf_id)
+  render_dir(parent_dir, M.window.left.win_id, M.window.left.buf_id)
+  M.set_winbar(M.window.left.win_id, fs.shorten_path(dir.path))
   vim.schedule(function()
     M.set_cursor(M.window.left.win_id, parent_entry_row)
   end)
 end
 
 ---@param dir trek.Directory
----@param buf_id integer
-function M.render_dir(dir, buf_id)
-  local is_selection_mode = utils.find_index(dir.entries, function(entry)
-    return entry.marked
-  end) ~= -1
-  local lines = utils.map(
-    dir.entries,
-    ---@param entry trek.DirectoryEntry
-    function(entry)
-      local icon = M.get_icon(entry)
-      local checkbox = ""
-      if is_selection_mode then
-        checkbox = entry.marked and icon_checked or icon_not_checked
-        checkbox = checkbox .. "  "
-      end
-      return "/" .. entry.id .. "/" .. checkbox .. icon .. " /" .. entry.name
-    end
-  )
-  vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, lines)
-  highlights.add_highlights(buf_id, dir.entries)
-end
-
----@param path string
-function M.render_dirs(path)
-  M.render_current_dir(path)
-  local parent_path = fs.get_parent(path)
+function M.render_dirs(dir)
+  M.render_current_dir(dir)
+  local parent_path = fs.get_parent(dir.path)
   if parent_path ~= nil then
-    M.render_parent_dir(parent_path, path)
+    M.render_parent_dir(parent_path, dir)
   end
   vim.api.nvim_set_current_win(M.window.center.win_id)
 end
@@ -283,38 +288,22 @@ function M.restore_window_opts(win_id)
   end
 end
 
----@param left_win_id integer
----@param center_win_id integer
-M.mark_dirty = vim.schedule_wrap(function(left_win_id, center_win_id)
-  -- highlights.set_modified_winsep(
-  --   left_win_id,
-  --   highlights.ns_id.left_window,
-  --   highlights.colors.warning
-  -- )
-  -- highlights.set_modified_winsep(
-  --   center_win_id,
-  --   highlights.ns_id.center_window,
-  --   highlights.colors.warning
-  -- )
+M.mark_dirty = vim.schedule_wrap(function()
+  M.winbar.modified = true
+  highlights.set_winbar_modified(M.window.center.win_id, highlights.ns_id.center_window)
+  M.set_winbar(M.window.center.win_id, M.winbar.windows[M.window.center.win_id])
 end)
 
----@param left_win_id integer
----@param center_win_id integer
-M.mark_clean = vim.schedule_wrap(function(left_win_id, center_win_id)
-  highlights.set_modified_winsep(
-    left_win_id,
-    highlights.ns_id.left_window,
-    highlights.colors.dark
-  )
-  highlights.set_modified_winsep(
-    center_win_id,
-    highlights.ns_id.center_window,
-    highlights.colors.dark
-  )
+M.mark_clean = vim.schedule_wrap(function()
+  M.winbar.modified = false
+  highlights.set_winbar(M.window.center.win_id, highlights.ns_id.center_window)
+  M.set_winbar(M.window.center.win_id, M.winbar.windows[M.window.center.win_id])
 end)
 
 function M.hide_selection_mode_info()
-  if M.window.selection_mode_info.win_id == nil then return end
+  if M.window.selection_mode_info.win_id == nil then
+    return
+  end
   vim.api.nvim_win_close(M.window.selection_mode_info.win_id, true)
   M.window.selection_mode_info.win_id = nil
   M.window.selection_mode_info.buf_id = nil
@@ -323,14 +312,14 @@ end
 ---@param text string
 function M.create_selection_mode_info_win(text)
   M.window.selection_mode_info.buf_id = vim.api.nvim_create_buf(false, true)
-  vim.bo[M.window.selection_mode_info.buf_id].buftype = 'nofile'
+  vim.bo[M.window.selection_mode_info.buf_id].buftype = "nofile"
   local win_width = vim.api.nvim_win_get_width(M.window.center.win_id)
   local win_height = vim.api.nvim_win_get_height(M.window.center.win_id)
 
   local ns = vim.api.nvim_create_namespace("TrekSelectionModeInfo")
   vim.api.nvim_set_hl(ns, "CursorLine", { bg = highlights.colors.normal, fg = highlights.colors.text })
   M.window.selection_mode_info.win_id = vim.api.nvim_open_win(M.window.selection_mode_info.buf_id, false, {
-    relative = 'win',
+    relative = "win",
     width = #text + 4,
     height = 1,
     row = win_height,
