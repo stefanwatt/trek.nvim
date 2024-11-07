@@ -39,52 +39,6 @@
 
 ---
 
-## ⚙️ Configuration
-
-Below is the default configuration for `trek.nvim`:
-
-```lua
-{
-  lsp = {
-    timeout_ms = 500,
-    autosave_changes = true,
-  },
-  keymaps = {
-    close = "q",
-    go_in = "<Right>",
-    go_out = "<Left>",
-    synchronize = "=",
-    mark_entry = "<Tab>",
-  },
-}
-```
-To customize these settings, call the setup with your configuration.
-
----
-
-## 🚀 Usage
-
-### Open `trek.nvim` at the current path
-
-You can open `trek.nvim` at the current path with this command:
-
-```lua
-require("trek").open(vim.api.nvim_buf_get_name(0))
-```
-
-The `open` function for `trek.nvim` can be used to open the directory of any given file path.
-
----
-
-## 🔑 Default Keymaps
-- **Close**: `q`
-- **Go into directory**: `<Right>`
-- **Go out of directory**: `<Left>`
-- **Synchronize view**: `=`
-- **Mark entry**: `<Tab>`
-
----
-
 ## 📦 Installation
 
 Using [lazy.nvim](https://github.com/folke/lazy.nvim):
@@ -122,6 +76,29 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 ```
 
 ---
+## 🚀 Usage
+
+### Open `trek.nvim` at the current path
+
+You can open `trek.nvim` at the current path with this command:
+
+```lua
+require("trek").open(vim.api.nvim_buf_get_name(0))
+```
+
+The `open` function for `trek.nvim` can be used to open the directory of any given file path.
+
+---
+
+## 🔑 Default Keymaps
+- **Close**: `q`
+- **Go into directory**: `<Right>`
+- **Go out of directory**: `<Left>`
+- **Synchronize view**: `=`
+- **Mark entry**: `<Tab>`
+
+---
+
 
 
 ### 🙏 Special Thanks
