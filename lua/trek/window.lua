@@ -67,12 +67,12 @@ function M.open()
   ---@class trek.WindowData
   local window = get_default_window()
   vim.cmd("tabnew")
+  window.left.buf_id = vim.api.nvim_get_current_buf()
   window.left.win_id = vim.api.nvim_get_current_win()
   vim.cmd("vsplit")
   window.center.win_id = vim.api.nvim_get_current_win()
   vim.cmd("vsplit")
   window.right.win_id = vim.api.nvim_get_current_win()
-  window.left.buf_id = vim.api.nvim_create_buf(false, true)
   window.center.buf_id = vim.api.nvim_create_buf(false, true)
   window.right.buf_id = vim.api.nvim_create_buf(false, true)
   vim.bo[window.left.buf_id].buftype = "nofile"
