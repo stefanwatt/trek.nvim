@@ -14,15 +14,15 @@ function M.on_lines_changed(buf_id, cb)
   discarded_first = false
   vim.api.nvim_buf_attach(buf_id, false, {
     on_lines = function(
-        event,
-        buf_handle,
-        changedtick,
-        first_line,
-        last_line,
-        last_line_updated,
-        byte_count,
-        deleted_codepoints,
-        deleted_codeunits
+      event,
+      buf_handle,
+      changedtick,
+      first_line,
+      last_line,
+      last_line_updated,
+      byte_count,
+      deleted_codepoints,
+      deleted_codeunits
     )
       if not discarded_first then
         discarded_first = true
@@ -112,4 +112,26 @@ function M.get_default_entry()
   }
 end
 
+---@param buf_id integer
+---@return integer | nil
+function M.validate_empty_buffer(buf_id)
+  if not vim.api.nvim_buf_is_valid(buf_id) then
+    return
+  end
+  local bufname = vim.api.nvim_buf_get_name(buf_id)
+  if bufname ~= "" then
+    return
+  end
+  if not vim.api.nvim_buf_get_option(buf_id, "buflisted") then
+    return
+  end
+  local lines = vim.api.nvim_buf_get_lines(buf_id, 0, -1, false)
+  if #lines ~= 1 or lines[1] ~= "" then
+    return
+  end
+  if not vim.api.nvim_buf_get_option(buf_id, "modifiable") then
+    return
+  end
+  return buf_id
+end
 return M
