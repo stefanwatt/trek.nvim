@@ -67,7 +67,9 @@ function M.open()
   ---@class trek.WindowData
   local window = get_default_window()
   vim.cmd("tabnew")
-  window.left.buf_id = vim.api.nvim_get_current_buf()
+  window.left.buf_id = buffer.validate_empty_buffer(vim.api.nvim_get_current_buf())
+  assert(window.left.buf_id ~= nil, "something went wrong using the empty buffer after opening a new tab")
+  vim.bo[window.left.buf_id].buflisted = false
   window.left.win_id = vim.api.nvim_get_current_win()
   vim.cmd("vsplit")
   window.center.win_id = vim.api.nvim_get_current_win()
