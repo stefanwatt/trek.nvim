@@ -155,6 +155,19 @@ M.is_subpath = function(root, candidate)
   return candidate_starts_with_sep or root_ends_with_sep
 end
 
+---@param path string
+---@return "file"|"directory"|nil
+function M.get_path_type(path)
+  local expanded_path = vim.fn.expand(path)
+  if vim.fn.filereadable(expanded_path) == 1 then
+    return "file"
+  elseif vim.fn.isdirectory(expanded_path) == 1 then
+    return "directory"
+  else
+    return nil
+  end
+end
+
 ---@param url string
 ---@return nil|string
 ---@return nil|string

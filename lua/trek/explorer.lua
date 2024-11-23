@@ -53,8 +53,11 @@ end
 
 ---@param path string
 function M.open(path)
+  assert(path ~= nil and type(path) == "string", "path is not a string")
+  print("path: " .. path)
+  local dir_path = fs.get_directory_of_path(path)
   M.window = window.open()
-  M.dir = fs.get_dir_content(path)
+  M.dir = fs.get_dir_content(dir_path)
   M.listen_for_center_buf_changes()
   window.mark_clean()
   M.opened = true
@@ -64,8 +67,14 @@ function M.open(path)
     window.set_window_opts(win_id)
   end
   M.track_cursor()
-  M.update_selected_entry()
   window.render_preview(M.selected_entry)
+  if utils.get_path_type(path) == "file" then
+    local row = utils.find_index(M.dir.entries,function(entry)
+      return entry.path == path
+    end)
+    window.set_cursor(M.window.center.win_id, row)
+  end
+  M.selected_entry = M.update_selected_entry()
   window.store_cursor_pos(M.dir.path, M.window.center.win_id)
   M.setup_keymaps()
 end
